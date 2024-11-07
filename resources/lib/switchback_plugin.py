@@ -2,11 +2,11 @@ from urllib.parse import parse_qs
 
 import xbmc
 import xbmcplugin
-
+import json
 from bossanova808.constants import *
 from bossanova808.logger import Logger
 from bossanova808.notify import Notify
-from bossanova808.utilities import footprints
+from bossanova808.utilities import *
 # noinspection PyPackages
 from .store import Store
 from infotagger.listitem import ListItemInfoTag
@@ -38,7 +38,8 @@ def create_kodi_list_item_from_playback(playback, index=None, offscreen=False):
     tag = ListItemInfoTag(list_item, 'video')
     infolabels = {
             'mediatype': playback.type,
-            'dbid': playback.dbid,
+            'dbid': playback.dbid if playback.type != 'episode' else playback.tvshowdbid,
+            'tvshowdbid': playback.tvshowdbid,
             'title': playback.title,
             'year': playback.year,
             'tvshowtitle': playback.showtitle,
@@ -64,7 +65,7 @@ def create_kodi_list_item_from_playback(playback, index=None, offscreen=False):
 
     # index can be zero, so in this case, must explicitly check against None!
     if index is not None:
-        list_item.addContextMenuItems([(LANGUAGE(32004), "RunPlugin(plugin://script.switchback?mode=delete&index=" + str(index) + ")")])
+        list_item.addContextMenuItems([(LANGUAGE(32004), "RunPlugin(plugin://plugin.switchback?mode=delete&index=" + str(index) + ")")])
 
     return list_item
 
@@ -86,9 +87,14 @@ def run(args):
     # Switchback mode - easily swap between switchback_list[0] and switchback_list[1]
     if mode and mode[0] == "switchback":
         try:
-            Logger.info(f"Playing previous file (Store.switchback_list[1]) {Store.switchback_list[1].file}")
-            list_item = create_kodi_list_item_from_playback(Store.switchback_list[1], offscreen=True)
+            switchback = Store.switchback_list[1]
+            Logger.info(f"Playing previous file (Store.switchback_list[1]) {switchback.file}")
+            list_item = create_kodi_list_item_from_playback(switchback, offscreen=True)
             Notify.kodi_notification(f"{list_item.getLabel()}", 3000, ADDON_ICON)
+
+            # Set a property so we can force browse later at the end of playback
+            HOME_WINDOW.setProperty('Switchback', 'true')
+
             xbmcplugin.setResolvedUrl(plugin_instance, True, list_item)
         except IndexError:
             Notify.error("No previous item found to play")
