@@ -60,6 +60,7 @@ class KodiPlayer(xbmc.Player):
                     "id": "XBMC.GetInfoLabels",
                     "method": "XBMC.GetInfoLabels",
                     "params": {"labels": [
+                            "Player.Folderpath",
                             "Player.Art(thumb)",
                             "Player.Art(poster)",
                             "Player.Art(fanart)",
@@ -71,6 +72,7 @@ class KodiPlayer(xbmc.Player):
                             "VideoPlayer.Title",
                             "VideoPlayer.Year",
                             "VideoPlayer.TVShowTitle",
+                            "VideoPlayer.TvShowDBID",
                             "VideoPlayer.Season",
                             "VideoPlayer.Episode",
                             # PVR
@@ -94,12 +96,12 @@ class KodiPlayer(xbmc.Player):
             # WHAT IS THE SOURCE - Kodi Library (...get DBID), PVR, or Non-Library Media?
             Store.current_playback.dbid = int(properties.get(f'{stub}Player.DBID')) if properties.get(f'{stub}Player.DBID') else None
             if Store.current_playback.dbid:
-                Store.current_playback.source = "Kodi Library"
+                Store.current_playback.source = "kodi_library"
             elif properties['VideoPlayer.ChannelName']:
-                Store.current_playback.source = "PVR"
+                Store.current_playback.source = "pvr_live"
             else:
                 # Logger.info("Not from Kodi library, not PVR, not an http source - must be a non library media file")
-                Store.current_playback.source = "Media File"
+                Store.current_playback.source = "file"
 
             # TITLE
             Store.current_playback.title = properties.get(f'{stub}Player.Title', "")
@@ -122,17 +124,18 @@ class KodiPlayer(xbmc.Player):
                 Store.current_playback.thumbnail = unquote(properties['Player.Art(fanart)']).replace("image://", "").rstrip("/")
 
             # DETERMINE THE MEDIA TYPE - not 100% on the logic here...
-            if properties['Player.Art(tvshow.poster)']:
+            if properties['VideoPlayer.TVShowTitle']:
                 Store.current_playback.type = "episode"
+                Store.current_playback.tvshowdbid = int(properties['VideoPlayer.TvShowDBID']) if properties.get('VideoPlayer.TvShowDBID') else None
             elif properties['VideoPlayer.ChannelName']:
                 Store.current_playback.type = "video"
                 if 'channels' in Store.current_playback.file:
                     Store.current_playback.source = "pvr.live"
                 elif 'recordings' in Store.current_playback.file:
                     Store.current_playback.source = "pvr.recording"
-            elif properties['Player.Art(poster)']:
+            elif stub == 'Video' and Store.current_playback.dbid:
                 Store.current_playback.type = "movie"
-            elif stub == 'Video':
+            elif stub == "Video":
                 Store.current_playback.type = "video"
             else:
                 Store.current_playback.type = "song"
@@ -163,11 +166,45 @@ class KodiPlayer(xbmc.Player):
         """
         Playback has finished, so update our Switchback List
         """
-        Logger.debug("onPlaybackFinished")
+        Logger.debug("onPlaybackFinished with Store.current_playback:")
 
         if not Store.current_playback or not Store.current_playback.file:
             Logger.error("No current playback details available...not recording this playback")
             return
+
+        Logger.debug(Store.current_playback)
+
+        switchback_playback = HOME_WINDOW.getProperty('Switchback')
+        HOME_WINDOW.clearProperty('Switchback')
+        if switchback_playback == 'true':
+            if Store.current_playback.type == "episode":
+                Logger.debug("Force browsing to tvshow/season/ of just finished playback")
+                command = json.dumps({
+                        "jsonrpc": "2.0",
+                        "id": 1,
+                        "method": "GUI.ActivateWindow",
+                        "params": {
+                                "window": "videos",
+                                # DBID is used here, not the expected TvShowDBID as I can't seem to get that infolabel set for a Switchback playback??
+                                # See switchback_plugin.py - 'dbid': playback.dbid if playback.type != 'episode' else playback.tvshowdbid,
+                                "parameters": [f'videodb://tvshows/titles/{Store.current_playback.dbid}/{Store.current_playback.season}'],
+                        }
+                })
+                send_kodi_json(f'Browse to episode of {Store.current_playback.showtitle}', command)
+            # @TODO - is is possible to force Kodi to browse to a particular movie?
+            # (i.e. a particular movie focussed within the movies list)
+            # elif Store.current_playback.type == "movie":
+            #     Logger.debug("Force browsing to movie of just finished playback")
+            #     command = json.dumps({
+            #             "jsonrpc": "2.0",
+            #             "id": 1,
+            #             "method": "GUI.ActivateWindow",
+            #             "params": {
+            #                     "window": "videos",
+            #                     "parameters": [f'videodb://movies/titles/', 'return'],
+            #             }
+            #     })
+            #     send_kodi_json(f'Browse to movie {Store.current_playback.title}', command)
 
         Logger.debug(Store.switchback_list)
 
@@ -195,3 +232,5 @@ class KodiPlayer(xbmc.Player):
 
         # Finally, Save the playback list to file
         Store.save_switchback_list()
+
+
