@@ -85,11 +85,9 @@ class Store:
         :return:
         """
         with open(Store.switchback_list_file, 'w', encoding='utf-8') as f:
-            temp_json = []
-            for playback in Store.switchback_list:
-                temp_json.append(playback.toJson())
-            temp_json = ',\n'.join(temp_json)
-            f.write(f"[\n{temp_json}\n]\n")
+            json_string = json.dumps([vars(playback) for playback in Store.switchback_list], indent=4)
+            f.write(json_string)
+
 
 
 

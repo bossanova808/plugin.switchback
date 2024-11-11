@@ -30,6 +30,4 @@ class Playback:
     channelnumberlabel:str = None
     channelgroup:str = None
 
-    def toJson(self):
-        return json.dumps(self, default=lambda o: o.__dict__)
 
