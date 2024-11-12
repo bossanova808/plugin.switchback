@@ -25,7 +25,7 @@ def run():
         # (Playback record is created onAVStarted in player.py, so check here that it is available)
         elif Store.current_playback and Store.kodi_player.isPlaying():
             Store.current_playback.resumetime = Store.kodi_player.getTime()
-            xbmc.sleep(500)
+            Store.kodi_event_monitor.waitForAbort(0.5)
 
     # and, we're done...
     footprints(startup=False)

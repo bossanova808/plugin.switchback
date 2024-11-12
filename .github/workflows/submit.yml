@@ -17,7 +17,7 @@ jobs:
       uses: xbmc/action-kodi-addon-submitter@v1.3
       with:
         kodi-repository: repo-plugins
-        kodi-version: matrix
+        kodi-version: nexus
         addon-id: plugin.switchback
       env: # Make sure you create the below secrets (GH_TOKEN and EMAIL)
         GH_USERNAME: ${{ github.actor }}
