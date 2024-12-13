@@ -26,6 +26,7 @@ class Store:
     # Addon settings
     maximum_list_length = ADDON.getSettingInt('maximum_list_length')
     include_music = ADDON.getSettingBool('include_music')
+    filter_watched = ADDON.getSettingBool('filter_watched')
     # Playbacks are of these possible types
     kodi_video_types = ["movie", "tvshow", "episode", "musicvideo", "video"]
     kodi_music_types = ["song","album"]
@@ -46,6 +47,7 @@ class Store:
         Logger.info("Loading configuration")
         Store.maximum_list_length = ADDON.getSettingInt('maximum_list_length')
         Store.include_music = ADDON.getSettingBool('include_music')
+        Store.filter_watched = ADDON.getSettingBool('filter_watched')
         Logger.info(f"Maximum Switchback list length is: {Store.maximum_list_length}")
         Logger.info(f"Include Music is: {Store.include_music}")
 
@@ -84,6 +86,31 @@ class Store:
         Save the Switchback list to file in JSON format
         :return:
         """
+        Logger.debug(Store.switchback_list)
+
+        # This approach keeps all the details from the original playback
+        # (in case they don't make it through when the repeat playback from the Switchback list occurs - as sometimes seems to be the case)
+        playback_to_remove = None
+        for previous_playback in Store.switchback_list:
+            if previous_playback.path == Store.current_playback.path:
+                playback_to_remove = previous_playback
+                break
+
+        if playback_to_remove:
+            Store.switchback_list.remove(playback_to_remove)
+            # Update with the current playback times
+            playback_to_remove.resumetime = Store.current_playback.resumetime
+            playback_to_remove.totaltime = Store.current_playback.totaltime
+            Store.switchback_list.insert(0, playback_to_remove)
+        else:
+            Store.switchback_list.insert(0, Store.current_playback)
+
+        Logger.debug(Store.switchback_list)
+
+        # Trim the list to the max length
+        Store.switchback_list = Store.switchback_list[0:Store.maximum_list_length]
+
+        # And finally write out the updated list to disk
         with open(Store.switchback_list_file, 'w', encoding='utf-8') as f:
             json_string = json.dumps([vars(playback) for playback in Store.switchback_list], indent=4)
             f.write(json_string)

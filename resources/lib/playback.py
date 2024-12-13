@@ -8,6 +8,7 @@ class Playback:
     Stores whatever data we can grab about a Kodi Playback so that we can display it nicely in the Switchback list
     """
     file:str = None
+    path:str = None
     type:str = None  # episode, movie, video, song
     source:str = None  # kodi_library, pvr_live, media_file
     dbid:int = None

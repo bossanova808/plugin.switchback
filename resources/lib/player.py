@@ -36,15 +36,17 @@ class KodiPlayer(xbmc.Player):
             # Clear any legacy recorded playback details by creating a new Playback object
             Store.current_playback = Playback()
             Store.current_playback.file = self.getPlayingFile()
+            item = self.getPlayingItem()
+            Store.current_playback.path = item.getPath()
 
-            # @TODO - add support for addons/plugins?  Too many things won't play back without a token etc, so not for V1!
-            if 'http' in Store.current_playback.file:
-                Logger.info("Not recording playback as is an http source (plugin/addon) - not yet supported.")
-                return
-            # @TODO - add support for PVR recordings?  Experience errors playing these back using the PVR file URL??
-            elif 'recordings' in Store.current_playback.file:
-                Logger.warning("Not recording playback as is a PVR recording - not yet supported.")
-                return
+            # # @TODO - add support for addons/plugins?  Too many things won't play back without a token etc, so not for V1!
+            # if 'http' in Store.current_playback.file:
+            #     Logger.info("Not recording playback as is an http source (plugin/addon) - not yet supported.")
+            #     return
+            # # @TODO - add support for PVR recordings?  Experience errors playing these back using the PVR file URL??
+            # elif 'recordings' in Store.current_playback.file:
+            #     Logger.warning("Not recording playback as is a PVR recording - not yet supported.")
+            #     return
 
             # Get more info on what is playing (empty values are returned if they're not relevant/set)
             # Unfortunately, when playing from an offscreen playlist, the GetItem properties don't seem to be set,
@@ -97,6 +99,8 @@ class KodiPlayer(xbmc.Player):
             Store.current_playback.dbid = int(properties.get(f'{stub}Player.DBID')) if properties.get(f'{stub}Player.DBID') else None
             if Store.current_playback.dbid:
                 Store.current_playback.source = "kodi_library"
+            elif 'plugin' in Store.current_playback.path:
+                Store.current_playback.source = "plugin"
             elif properties['VideoPlayer.ChannelName']:
                 Store.current_playback.source = "pvr_live"
             else:
@@ -152,8 +156,11 @@ class KodiPlayer(xbmc.Player):
             Store.current_playback.artist = properties.get('MusicPlayer.Artist')
             Store.current_playback.tracknumber = int(properties.get('MusicPlayer.TrackNumber')) if properties.get('MusicPlayer.TrackNumber') else None
 
+            # Save this playback straight away to cope with Switchback _during_ playback (when the subesquent stop occurs, then the resume point etc will be updated)
+            Store.save_switchback_list()
+
     # @TODO - consider NOT recording playbacks that are fully watched?
-    # More than changing this is needed though, as people rarely un things out right to the end, credits etc, so would need
+    # More than changing this is needed though, as people rarely run things out right to the end, credits etc, so would need
     # to retrieve watched status somehow...
     def onPlayBackEnded(self):  # video ended by simply running out (i.e. user didn't stop it)
         self.onPlaybackFinished()
@@ -168,14 +175,16 @@ class KodiPlayer(xbmc.Player):
         """
         Logger.debug("onPlaybackFinished with Store.current_playback:")
 
-        if not Store.current_playback or not Store.current_playback.file:
+        if not Store.current_playback or not Store.current_playback.path:
             Logger.error("No current playback details available...not recording this playback")
             return
 
         Logger.debug(Store.current_playback)
 
+        # Was this playback started via Switchback?
         switchback_playback = HOME_WINDOW.getProperty('Switchback')
         HOME_WINDOW.clearProperty('Switchback')
+
         if switchback_playback == 'true':
             if Store.current_playback.type == "episode":
                 Logger.debug("Force browsing to tvshow/season/ of just finished playback")
@@ -206,31 +215,6 @@ class KodiPlayer(xbmc.Player):
             #     })
             #     send_kodi_json(f'Browse to movie {Store.current_playback.title}', command)
 
-        Logger.debug(Store.switchback_list)
-
-        # This approach keeps all the details from the original playback
-        # (in case they don't make it through when the repeat playback from the Switchback list occurs - as sometimes seems to be the case)
-        playback_to_remove = None
-        for previous_playback in Store.switchback_list:
-            if previous_playback.file == Store.current_playback.file:
-                playback_to_remove = previous_playback
-                break
-
-        if playback_to_remove:
-            Store.switchback_list.remove(playback_to_remove)
-            # Update with the current playback times
-            playback_to_remove.resumetime = Store.current_playback.resumetime
-            playback_to_remove.totaltime = Store.current_playback.totaltime
-            Store.switchback_list.insert(0, playback_to_remove)
-        else:
-            Store.switchback_list.insert(0, Store.current_playback)
-
-        Logger.debug(Store.switchback_list)
-
-        # Trim the list to the max length
-        Store.switchback_list = Store.switchback_list[0:Store.maximum_list_length]
-
-        # Finally, Save the playback list to file
         Store.save_switchback_list()
 
 

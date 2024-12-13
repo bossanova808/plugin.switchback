@@ -16,12 +16,19 @@ def create_kodi_list_item_from_playback(playback, index=None, offscreen=False):
     Logger.info("Creating list item from playback")
     Logger.info(playback)
 
+    # library item?  If user has asked us to, filter out if watched
+    if playback.dbid or playback.tvshowdbid:
+        if Store.filter_watched:
+            # Get watched status from Kodi DB
+            pass
+        
     label = playback.title
     if playback.showtitle:
-        if playback.season >= 0 and playback.episode >= 0:
-            label = f"{playback.showtitle} ({playback.season}x{playback.episode:02d}) - {playback.title}"
-        elif playback.season >= 0:
-            label = f"{playback.showtitle} ({playback.season}x?) - {playback.title}"
+        if playback.season and playback.episode:
+            if playback.season >= 0 and playback.episode >= 0:
+                label = f"{playback.showtitle} ({playback.season}x{playback.episode:02d}) - {playback.title}"
+            elif playback.season >= 0:
+                label = f"{playback.showtitle} ({playback.season}x?) - {playback.title}"
         else:
             label = f"{playback.showtitle} - {playback.title}"
     elif playback.channelname:
@@ -34,7 +41,7 @@ def create_kodi_list_item_from_playback(playback, index=None, offscreen=False):
     elif playback.artist:
         label = f"{playback.artist} - {playback.title}"
 
-    list_item = xbmcgui.ListItem(label=label, path=playback.file, offscreen=offscreen)
+    list_item = xbmcgui.ListItem(label=label, path=playback.path, offscreen=offscreen)
     tag = ListItemInfoTag(list_item, 'video')
     infolabels = {
             'mediatype': playback.type,
@@ -50,10 +57,10 @@ def create_kodi_list_item_from_playback(playback, index=None, offscreen=False):
             'tracknumber': playback.tracknumber,
             'duration': playback.totaltime,
     }
-    # Infotagger seems the best way to do this currently as is well teste
+    # Infotagger seems the best way to do this currently as is well tested
     # I found directly setting things on InfoVideoTag to be buggy/inconsistent
     tag.set_info(infolabels)
-    list_item.setPath(path=playback.file)
+    list_item.setPath(path=playback.path)
     list_item.setArt({"thumbnail": playback.thumbnail})
     list_item.setArt({"poster": playback.poster})
     list_item.setArt({"fanart": playback.fanart})
@@ -88,14 +95,16 @@ def run(args):
     if mode and mode[0] == "switchback":
         try:
             switchback = Store.switchback_list[1]
-            Logger.info(f"Playing previous file (Store.switchback_list[1]) {switchback.file}")
+            Logger.info(f"Playing previous path (Store.switchback_list[1]) {switchback.path}")
             list_item = create_kodi_list_item_from_playback(switchback, offscreen=True)
-            Notify.kodi_notification(f"{list_item.getLabel()}", 3000, ADDON_ICON)
-
-            # Set a property so we can force browse later at the end of playback
-            HOME_WINDOW.setProperty('Switchback', 'true')
-
-            xbmcplugin.setResolvedUrl(plugin_instance, True, list_item)
+            if list_item:
+                Notify.kodi_notification(f"{list_item.getLabel()}", 3000, ADDON_ICON)
+                # Set a property so we can potentially force browse later at the end of playback for this type of playback
+                HOME_WINDOW.setProperty('Switchback', 'true')
+                xbmcplugin.setResolvedUrl(plugin_instance, True, list_item)
+            else:
+                Notify.error("Could not Switchback, see logs")
+                Logger.error("Could not Switchback, see logs")
         except IndexError:
             Notify.error("No previous item found to play")
             Logger.error("No previous item found to play")
@@ -111,7 +120,7 @@ def run(args):
             Logger.debug("Force refresh the container so we see the latest Switchback list")
             xbmc.executebuiltin("Container.Refresh")
 
-    # Default mode - show the whole Switchback List
+    # Default mode - display the Switchback List
     else:
         for index, playback in enumerate(Store.switchback_list[0:Store.maximum_list_length]):
             list_item = create_kodi_list_item_from_playback(playback, index=index)

@@ -32,3 +32,7 @@ msgstr ""
 msgctxt "#32004"
 msgid "Delete playback from Switchback list"
 msgstr ""
+
+msgctxt "#32005"
+msgid "Filter watched items out of the Switchback list?"
+msgstr ""

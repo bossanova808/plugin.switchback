@@ -10,6 +10,11 @@
                         <heading>32002</heading>
                     </control>
                 </setting>
+                <setting id="filter_watched" type="boolean" label="32005" help="">
+                    <level>0</level>
+                    <default>false</default>
+                    <control type="toggle"/>
+                </setting>
                 <setting id="include_music" type="boolean" label="32003" help="">
                     <level>0</level>
                     <default>false</default>
