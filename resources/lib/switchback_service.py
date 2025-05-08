@@ -11,8 +11,7 @@ import xbmc
 # This is 'main'...
 def run():
 
-    footprints()
-    Logger.info("(Service)")
+    Logger.start("(Service)")
     Store()
     Store.kodi_event_monitor = KodiEventMonitor(xbmc.Monitor)
     Store.kodi_player = KodiPlayer(xbmc.Player)
@@ -23,9 +22,9 @@ def run():
             break
         # Otherwise, if we're playing something, record where we are up to, for later resumes
         # (Playback record is created onAVStarted in player.py, so check here that it is available)
-        elif Store.current_playback and Store.kodi_player.isPlaying():
+        elif Store.current_playback and Store.current_playback.source != "pvr_live" and Store.kodi_player.isPlaying():
             Store.current_playback.resumetime = Store.kodi_player.getTime()
-            Store.kodi_event_monitor.waitForAbort(0.5)
+            xbmc.sleep(500)
 
-    # and, we're done...
-    footprints(startup=False)
+    # And, we're done...
+    Logger.stop("(Service)")

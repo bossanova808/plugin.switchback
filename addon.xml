@@ -11,6 +11,19 @@
     <extension point="xbmc.python.pluginsource" library="plugin.py">
 		<provides>video audio</provides>
 	</extension>
+    <!-- ...and a context menu extension point -->
+    <extension point="kodi.context.item">
+        <menu id="kodi.core.main">
+            <item library="context_menu.py" args="switchback">
+                <label>Switchback: $INFO[Window(Home).Property(Switchback_Item)]</label>
+                <visible>Integer.IsGreater(Window(Home).Property(Switchback_List_Length),1)</visible>
+            </item>
+            <item library="context_menu.py" args="switchback_list">
+                <label>32008</label>
+                <visible>Integer.IsGreater(Window(Home).Property(Switchback_List_Length),0)</visible>
+            </item>
+        </menu>
+    </extension>
     <extension point="xbmc.addon.metadata">
         <summary lang="en_GB">Utility for fast switching between recently played media.</summary>
         <description lang="en_GB">
@@ -18,14 +31,14 @@ Kodi utility for fast switching between recently played media.
 
 Keeps a list of recently played media - supports Kodi library episodes, movies, PVR channels, songs and non-library files.  Does not (yet?) support add-ons or PVR recordings.
 
-The primary intended use is to make for super easy Switchback between two in progress videos (by binding a remote key to Switchback, see Wiki/Forum thread for info).
+The primary intended use is to make for super easy Switchback between two in-progress videos (by binding a remote key to Switchback, see Wiki/Forum thread for info).
 
 Consider this scenario:
-- You are watching 'video A' with your partner.  You are interrupted and your partner needs to tend to the kids/howl at the moon.
-- You navigate to 'video B' and watch some of that.
-- Your partner comes back.
-- You hit your one button 'Switchback' and 'video A' starts playing again, no need for tedious navigation etc.
-- You are interrupted again - the moon is so very bright tonight - hit your 'Switchback' to resume 'video B' immediately, again with one magic button and no tedious navigation.
+— You are watching 'video A' with your partner.  You're interrupted, and your partner needs to tend to the kids/howl at the moon.
+— You navigate to 'video B' and watch some of that.
+— Your partner comes back.
+— You hit your one button 'Switchback' and 'video A' starts playing again, no need for tedious navigation etc.
+— You're interrupted - again - (the moon is so very bright tonight!) hit your 'Switchback' to resume 'video B' immediately, again with one magic button and no tedious navigation.
         </description>
         <platform>all</platform>
         <license>GPL-3.0-only</license>

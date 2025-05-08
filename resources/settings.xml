@@ -10,14 +10,9 @@
                         <heading>32002</heading>
                     </control>
                 </setting>
-                <setting id="filter_watched" type="boolean" label="32005" help="">
+                <setting id="save_across_sessions" type="boolean" label="32006" help="">
                     <level>0</level>
-                    <default>false</default>
-                    <control type="toggle"/>
-                </setting>
-                <setting id="include_music" type="boolean" label="32003" help="">
-                    <level>0</level>
-                    <default>false</default>
+                    <default>true</default>
                     <control type="toggle"/>
                 </setting>
             </group>
