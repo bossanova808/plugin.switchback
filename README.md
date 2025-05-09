@@ -30,7 +30,8 @@ Switchback can be used like a standard Video plugin, via context menu, or bind a
 
 `<z mod="ctrl">PlayMedia(plugin://plugin.switchback/?mode=switchback,resume)</z>`
 `
-..or to show the full current Switchback list of recently played items:
+
+...or to show the full current Switchback list of recently played items:
 
 `<x mod="ctrl">RunAddon(plugin.switchback)</x>`
 
