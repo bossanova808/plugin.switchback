@@ -28,18 +28,14 @@
         <summary lang="en_GB">Utility for fast switching between recently played media.</summary>
         <description lang="en_GB">
 Kodi utility for fast switching between recently played media.
-
-Keeps a list of recently played media - supports Kodi Addons, library episodes & movies, PVR (live & recordings), and non-library videos.  
-
+Keeps a list of recently played media - supports Kodi Addons, library episodes and movies, PVR (live and recordings), and non-library videos.
 The primary intended use is to make for super easy Switchback between two in progress video. See Wiki for usage notes including how to bind remote/keyboard controls for instant Switchback.
-
 Consider this scenario:
-
-- You're watching 'video A' with your partner.  You're interrupted, and your partner needs to tend to the kids/howl at the moon.
-- You navigate to 'video B' and watch some of that while you're waiting.
-- Your partner comes back.
-- You hit your one button 'Switchback' and 'video A' instantly starts playing again - no need for tedious navigation etc.
-- You're interrupted, again! The moon really is so very bright tonight. Hit your 'Switchback' button to instantly resume 'video B', again with no tedious navigation.
+* You're watching 'video A' with your partner. You're interrupted, and your partner needs to tend to the kids/howl at the moon.
+* You navigate to 'video B' and watch some of that while you're waiting.
+* Your partner comes back.
+* You hit your one button 'Switchback' and 'video A' instantly starts playing again - no need for tedious navigation etc.
+* You're interrupted, again! The moon really is so very bright tonight. Hit your 'Switchback' button to instantly resume 'video B', again with no tedious navigation.
         </description>
         <platform>all</platform>
         <license>GPL-3.0-only</license>
