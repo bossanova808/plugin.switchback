@@ -72,7 +72,6 @@ class KodiPlayer(xbmc.Player):
             elif Store.current_playback.dbid:
                 Store.current_playback.type = "movie"
             elif xbmc.getInfoLabel('VideoPlayer.ChannelName'):
-                Logger.debug(f"^^^ {xbmc.getInfoLabel('VideoPlayer.ChannelName')}")
                 Store.current_playback.type = "pvr"
             else:
                 Store.current_playback.type = "file"
@@ -91,10 +90,13 @@ class KodiPlayer(xbmc.Player):
             Store.current_playback.thumbnail = clean_art_url(xbmc.getInfoLabel('Player.Art(thumb)') or item.getArt('thumb'))
 
             # OTHER DETAILS
-            Store.current_playback.showtitle = xbmc.getInfoLabel('VideoPlayer.TVShowTitle')
+            # Episodes & Movies
             Store.current_playback.year = int(xbmc.getInfoLabel(f'VideoPlayer.Year')) if xbmc.getInfoLabel(f'VideoPlayer.Year') else None
+            # Episodes
+            Store.current_playback.showtitle = xbmc.getInfoLabel('VideoPlayer.TVShowTitle')
             Store.current_playback.season = int(xbmc.getInfoLabel('VideoPlayer.Season')) if xbmc.getInfoLabel('VideoPlayer.Season') else None
             Store.current_playback.episode = int(xbmc.getInfoLabel('VideoPlayer.Episode')) if xbmc.getInfoLabel('VideoPlayer.Episode') else None
+            # PVR Live/Recordings
             Store.current_playback.channelname = xbmc.getInfoLabel('VideoPlayer.ChannelName')
             Store.current_playback.channelnumberlabel = xbmc.getInfoLabel('VideoPlayer.ChannelNumberLabel')
             Store.current_playback.channelgroup = xbmc.getInfoLabel('VideoPlayer.ChannelGroup')

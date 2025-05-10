@@ -72,12 +72,22 @@ def run(args):
                 switchback_to_play = Store.switchback.list[1]
                 Logger.info(f"Playing Switchback[1] - file (Store.switchback.list[1])")
             Logger.info(f"{switchback_to_play.pluginlabel}")
-            list_item = create_kodi_list_item_from_playback(switchback_to_play, offscreen=True)
-            Notify.kodi_notification(f"{switchback_to_play.pluginlabel}", 3000, ADDON_ICON)
-            # Set a property indicating this is a Switchback playback, so we can force browse later at the end of this playback
-            HOME_WINDOW.setProperty('Switchback', 'true')
-            HOME_WINDOW.setProperty('Switchback.Path', switchback_to_play.path)
-            xbmcplugin.setResolvedUrl(plugin_instance, True, list_item)
+
+            # setResolvedUrl does not handle PVR links properly, see https://forum.kodi.tv/showthread.php?tid=381623 ...
+            if "pvr://" not in switchback_to_play.path:
+                list_item = create_kodi_list_item_from_playback(switchback_to_play, offscreen=True)
+                Notify.kodi_notification(f"{switchback_to_play.pluginlabel}", 3000, ADDON_ICON)
+                # Set a property indicating this is a Switchback playback, so we can force browse later at the end of this playback
+                HOME_WINDOW.setProperty('Switchback', 'true')
+                HOME_WINDOW.setProperty('Switchback.Path', switchback_to_play.path)
+                xbmcplugin.setResolvedUrl(plugin_instance, True, list_item)
+            # ...so forced into a direct approach here
+            else:
+                command = f'PlayMedia("{switchback_to_play.path}",resume)'
+                Logger.debug("Working around PVR links not being handled by setResolvedUrl, using PlayMedia instead")
+                Logger.debug(command)
+                xbmc.executebuiltin(command)
+
         except IndexError:
             Notify.error(LANGUAGE(32007))
             Logger.error("No Switchback found to play")
