@@ -6,7 +6,8 @@ from bossanova808.playback import PlaybackList
 
 class Store:
     """
-    Helper class to read in and store the addon settings, and to provide a centralised store
+    Helper class to read in and store the addon settings, and to provide a general centralised store
+    Create one with: Store()
     """
     # Static class variables, referred to elsewhere by Store.whatever
     # https://docs.python.org/3/faq/programming.html#how-do-i-create-static-class-data-and-static-class-methods
@@ -24,9 +25,6 @@ class Store:
     maximum_list_length = ADDON.getSettingInt('maximum_list_length')
     # GUI Settings - to work out how to force browse to a show after a switchback initiated playback
     flatten_tvshows = None
-    # Advanced settings - for manually working out if we have reached the 'will be marked as watched' point in the playback
-    ignore_seconds_at_start = None
-    ignore_percent_at_end = None
 
     def __init__(self):
         """
@@ -35,11 +33,7 @@ class Store:
         """
         Store.load_config_from_settings()
         Store.load_config_from_kodi_settings()
-        Store.load_config_from_advancedsettings()
-        if Store.save_across_sessions:
-            Store.switchback.load_from_file()
-        else:
-            Store.switchback.init()
+        Store.switchback.load_or_init()
         Store.update_home_window_properties()
 
     @staticmethod
@@ -58,18 +52,6 @@ class Store:
     def load_config_from_kodi_settings():
         Store.flatten_tvshows = int(get_kodi_setting('videolibrary.flattentvshows'))
         Logger.info(f"Flatten TV Shows is: {Store.flatten_tvshows}")
-
-    @staticmethod
-    def load_config_from_advancedsettings():
-        """
-        Load anything we need from Kodi's advancedSettings.xml file
-        :return:
-        """
-        Logger.info("Query for advancedsettings.xml settings: ignoresecondsatstart (default 180), ignorepercentatend (default 8)")
-        Store.ignore_seconds_at_start = int(get_advancedsetting('./video/ignoresecondsatstart')) or 180
-        Store.ignore_percent_at_end = int(get_advancedsetting('./video/ignorepercentatend')) or 8
-        Logger.info(f"Using ignore seconds at start: {Store.ignore_seconds_at_start}")
-        Logger.info(f"Using ignore percent at end: {Store.ignore_percent_at_end}")
 
     @staticmethod
     def update_home_window_properties():

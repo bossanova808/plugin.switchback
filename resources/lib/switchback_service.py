@@ -26,5 +26,10 @@ def run():
             Store.current_playback.resumetime = Store.kodi_player.getTime()
             xbmc.sleep(500)
 
+    # Tidy up if the user wants us to
+    if not Store.save_across_sessions:
+        Logger.info('save_across_sessions is False, so deleting switchback.json')
+        Store.switchback.delete_file()
+
     # And, we're done...
     Logger.stop("(Service)")
