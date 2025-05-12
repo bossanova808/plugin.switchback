@@ -40,3 +40,7 @@ msgstr ""
 msgctxt "#32008"
 msgid "Switchback: List"
 msgstr ""
+
+msgctxt "#32009"
+msgid "Enable Switchback context menu items?"
+msgstr ""

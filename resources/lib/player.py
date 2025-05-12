@@ -15,7 +15,7 @@ class KodiPlayer(xbmc.Player):
     # noinspection PyUnusedLocal
     def __init__(self, *args):
         xbmc.Player.__init__(self)
-        Logger.debug('KodiPlayer __init__')
+        Logger.debug('Player __init__')
 
     # Use on AVStarted (vs Playback started) we want to record a playback only if the user actually _saw_ a video...
     def onAVStarted(self):
@@ -24,25 +24,40 @@ class KodiPlayer(xbmc.Player):
         # KISS - only support video...
         if xbmc.getCondVisibility('Player.HasVideo'):
 
-            # If the current playback was Switchback initiated, we have already recorded all the details we need.
-            # Resume time etc. will be updated when playback stops, so just return here.
-            if HOME_WINDOW.getProperty('Switchback'):
-                Store.current_playback = Store.switchback.find_playback_from_path(HOME_WINDOW.getProperty('Switchback.Path'))
-                if not Store.current_playback:
-                    Logger.error(f"No playback found for path {HOME_WINDOW.getProperty('Switchback.Path')} - this shouldn't happen?!")
-                return
-
-            # Otherwise, create a new Playback object
-            Store.current_playback = Playback()
-            Store.current_playback.file = self.getPlayingFile()
             # (If only we could just serialise this...)
             item = self.getPlayingItem()
+
+            # If the current playback was Switchback-triggered from a Kodi ListItem (i.e. not PVR, see hack in switchback_plugin.py),
+            # retrieve the previously recorded Playback details from the list. Set the Home Window properties that have not yet been set.
+            if item.getProperty('Switchback'):
+                Logger.debug("Switchback triggered playback, so finding and re-using existing Playback object")
+                Store.current_playback = Store.switchback.find_playback_by_path(item.getProperty('Switchback.Path') or item.getPath())
+                if Store.current_playback:
+                    Logger.debug("Re-using previously stored Playback object (ListItem):", Store.current_playback)
+                    # Set these here so they can be used/cleared in onPlaybackFinished below
+                    Store.update_home_window_properties_for_playback(Store.current_playback.path)
+                    return
+                else:
+                    Logger.error(f"Switchback triggered playback (ListItem), but no playback found in the list for this path - this shouldn't happen?!", Store.current_playback.path)
+
+            # If the current playback was Switchback-triggered (PVR),
+            # retrieve the previously recorded Playback details from the list. The Home Window properties are already set.
+            elif HOME_WINDOW.getProperty('Switchback'):
+                Store.current_playback = Store.switchback.find_playback_by_path(HOME_WINDOW.getProperty('Switchback.Path'))
+                if Store.current_playback:
+                    Logger.debug("Re-using previously stored Playback object (PVR):", Store.current_playback)
+                    return
+                else:
+                    Logger.error(f"Switchback triggered playback (PVR PlayMedia), but no playback found in the list for this path - this shouldn't happen?!", Store.current_playback.path)
+
+            # If we got to here, this was not a Switchback-triggered playback, or for some reason we've been unable to find the Playback
+            # Create a new Playback object and record the details/
+            Logger.debug("Not a Switchback playback, or error retrieving previous Playback, so creating a new Playback object to record details")
+            Store.current_playback = Playback()
+            Store.current_playback.file = self.getPlayingFile()
             Store.current_playback.label = item.getLabel()
             Store.current_playback.label = item.getLabel2()
             Store.current_playback.path = item.getPath()
-
-            # Unfortunately, when playing from an offscreen playlist, the GetItem properties don't seem to be set,
-            # but can instead get info from the InfoLabels it seems, see: https://forum.kodi.tv/showthread.php?tid=379301
 
             # SOURCE - Kodi Library (...get DBID), PVR, or Non-Library Media?
             Store.current_playback.dbid = int(xbmc.getInfoLabel(f'VideoPlayer.DBID')) if xbmc.getInfoLabel(f'VideoPlayer.DBID') else None
@@ -129,13 +144,16 @@ class KodiPlayer(xbmc.Player):
     @staticmethod
     def onPlaybackFinished():
         """
-        Playback has finished, so update our Switchback List
+        Playback has finished - we need to update the PlaybackList and save it to file, and, if the user desires, force Kodi to browse to the appropriate show/season
+
+        :return:
         """
-        Logger.debug("onPlaybackFinished with Store.current_playback:")
         if not Store.current_playback or not Store.current_playback.file:
-            Logger.error("No current playback details available...not recording this playback")
+            Logger.error("onPlaybackFinished with no current playback details available?! ...not recording this playback")
             return
-        Logger.debug(Store.current_playback)
+
+        Logger.debug("onPlaybackFinished with Store.current_playback:", Store.current_playback)
+        Logger.debug("onPlaybackFinished with Store.switchback.list: ", Store.switchback.list)
 
         # Was this a Switchback-initiated playback?
         switchback_playback = HOME_WINDOW.getProperty('Switchback')
@@ -158,9 +176,9 @@ class KodiPlayer(xbmc.Player):
                     window += f'/{Store.current_playback.season}'
 
                 xbmc.executebuiltin(f'ActivateWindow(Videos,{window},return)')
+            else:
                 # TODO - is is possible to force Kodi to go to movies and focus a specific movie?
-
-        Logger.debug(Store.switchback.list)
+                pass
 
         # This rather long-windeed approach is used to keep ALL the details recorded from the original playback
         # (in case they don't make it through when the playback is Switchback initiated - as sometimes seems to be the case)
@@ -180,9 +198,11 @@ class KodiPlayer(xbmc.Player):
         else:
             Store.switchback.list.insert(0, Store.current_playback)
 
-        Logger.debug(Store.switchback.list)
         # Trim the list to the max length
         Store.switchback.list = Store.switchback.list[0:Store.maximum_list_length]
+
         # Finally, save the updated PlaybackList
+        Logger.debug("Saving updated Store.switchback.list:", Store.switchback.list)
         Store.switchback.save_to_file()
-        Store.update_home_window_properties()
+        # & make sure the context menu items are updated
+        Store.update_home_window_properties_for_context_menu()

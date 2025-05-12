@@ -8,7 +8,7 @@ class KodiEventMonitor(xbmc.Monitor):
     # noinspection PyUnusedLocal
     def __init__(self, *args, **kwargs):
         xbmc.Monitor.__init__(self)
-        Logger.debug('KodiEventMonitor __init__')
+        Logger.debug('Monitor __init__')
 
     def onSettingsChanged(self):
         Logger.info('onSettingsChanged - reload them.')

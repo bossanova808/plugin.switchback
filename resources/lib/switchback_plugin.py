@@ -1,18 +1,18 @@
 from urllib.parse import parse_qs
 
 import xbmcplugin
-from bossanova808.notify import Notify
-from bossanova808.playback import Playback
-from bossanova808.utilities import *
+
 # noinspection PyPackages
 from .store import Store
+from bossanova808.utilities import *
+from bossanova808.notify import Notify
 
 
 # noinspection PyUnusedLocal
 def run(args):
     Logger.start("(Plugin)")
     Store()
-    
+
     plugin_instance = int(sys.argv[1])
     xbmcplugin.setContent(plugin_instance, 'video')
 
@@ -22,10 +22,10 @@ def run(args):
     if mode:
         Logger.info(f"Mode: {mode}")
     else:
-        Logger.info("Mode: default, generate plugin list of items")
+        Logger.info("Mode: default - generate 'folder' of items")
 
     # Switchback mode - easily swap between switchback.list[0] and switchback.list[1]
-    # If there's only one item in the list, then resume that
+    # If there's only one item in the list, then resume playing that item
     if mode and mode[0] == "switchback":
         try:
             if len(Store.switchback.list) == 1:
@@ -36,25 +36,31 @@ def run(args):
                 Logger.info(f"Playing Switchback[1] - path [{Store.switchback.list[1].path}]")
             Logger.info(f"{switchback_to_play.pluginlabel}")
 
-            # setResolvedUrl does not handle PVR links properly, see https://forum.kodi.tv/showthread.php?tid=381623 ...
-            if "pvr://" not in switchback_to_play.path:
-                list_item = switchback_to_play.create_list_item(offscreen=True)
-                Notify.kodi_notification(f"{switchback_to_play.pluginlabel}", 3000, ADDON_ICON)
-                # Set a property indicating this is a Switchback playback, so we can force browse later at the end of this playback
-                xbmcplugin.setResolvedUrl(plugin_instance, True, list_item)
-            # ...so forced into a direct approach here
-            else:
-                command = f'PlayMedia("{switchback_to_play.path}",resume)'
-                Logger.debug("Working around PVR links not being handled by setResolvedUrl, using PlayMedia instead")
-                Logger.debug(command)
-                xbmc.executebuiltin(command)
-
-            # Set properties so we can identify this playback as having been originated from a Switchback
+            # Notify the user and set properties so we can identify this playback as having been originated from a Switchback
+            Notify.kodi_notification(f"{switchback_to_play.pluginlabel}", 3000, ADDON_ICON)
             HOME_WINDOW.setProperty('Switchback', 'true')
             HOME_WINDOW.setProperty('Switchback.Path', switchback_to_play.path)
 
+            # setResolvedUrl does not handle PVR links properly, see https://forum.kodi.tv/showthread.php?tid=381623
+            # (TODO: remove this hack when setResolvedUrl is fixed to handle PVR links)
+            if "pvr://" in switchback_to_play.path:
+                # Kodi is jonesing for one of these, so give it the sugar it needs, see: https://forum.kodi.tv/showthread.php?tid=381623&pid=3232778#pid3232778
+                xbmcplugin.setResolvedUrl(int(sys.argv[1]), False, xbmcgui.ListItem())
+                # ...but then directly play the PVR channel/recording
+                built_in = f'PlayMedia("{switchback_to_play.path}",resume)'
+                Logger.debug("Working around PVR links not being handled by setResolvedUrl, using PlayMedia instead:", built_in)
+                # Can't use a property on the ListItem here, so set them on the Home Window instead
+                Store.update_home_window_properties_for_playback(switchback_to_play.path)
+                xbmc.executebuiltin(built_in)
+            # For all things setResolvedUrl can handle...
+            else:
+                list_item = switchback_to_play.create_list_item(offscreen=True)
+                list_item.setProperty('Switchback', 'true')
+                list_item.setProperty('Switchback.Path', switchback_to_play.path)
+                xbmcplugin.setResolvedUrl(plugin_instance, True, list_item)
+
         except IndexError:
-            Notify.error(LANGUAGE(32007))
+            Notify.error(TRANSLATE(32007))
             Logger.error("No Switchback found to play")
 
     # Delete an item from the Switchback list - e.g. if it is not playing back properly from Switchback
@@ -64,17 +70,18 @@ def run(args):
             Logger.info(f"Deleting playback {index_to_remove[0]} from Switchback list")
             Store.switchback.list.remove(Store.switchback.list[int(index_to_remove[0])])
             Store.switchback.save_to_file()
-            Store.update_home_window_properties()
+            Store.update_home_window_properties_for_context_menu()
             # Force refresh the list
-            Logger.debug("Force refresh the container, so Kodi displays the latest Switchback list")
+            Logger.debug("Force refresh the container, so Kodi immediately displays the updated Switchback list")
             xbmc.executebuiltin("Container.Refresh")
 
-    # Default mode - show the whole Switchback List
+    # Default mode - show the whole Switchback List (each of which has context menu option to delete itself)
     else:
         for index, playback in enumerate(Store.switchback.list[0:Store.maximum_list_length]):
             list_item = playback.create_list_item()
-            # Add the delete from list option
             list_item.addContextMenuItems([(LANGUAGE(32004), "RunPlugin(plugin://plugin.switchback?mode=delete&index=" + str(index) + ")")])
+            list_item.setProperty('Switchback', 'true')
+            list_item.setProperty('Switchback.Path', playback.path)
             xbmcplugin.addDirectoryItem(plugin_instance, playback.path, list_item)
 
         xbmcplugin.endOfDirectory(plugin_instance, cacheToDisc=False)

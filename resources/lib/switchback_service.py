@@ -1,23 +1,19 @@
 from bossanova808.utilities import *
-# noinspection PyPackages
-from .store import Store
-# noinspection PyPackages
-from .monitor import KodiEventMonitor
-# noinspection PyPackages
-from .player import KodiPlayer
+from resources.lib.store import Store
+from resources.lib.monitor import KodiEventMonitor
+from resources.lib.player import KodiPlayer
 import xbmc
 
 
 # This is 'main'...
 def run():
-
     Logger.start("(Service)")
     Store()
     Store.kodi_event_monitor = KodiEventMonitor(xbmc.Monitor)
     Store.kodi_player = KodiPlayer(xbmc.Player)
 
     while not Store.kodi_event_monitor.abortRequested():
-        # Abort was requested while waiting. We should exit
+        # Abort was requested while waiting. We should exit.
         if Store.kodi_event_monitor.waitForAbort(1):
             break
         # Otherwise, if we're playing something, record where we are up to, for later resumes
