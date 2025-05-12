@@ -5,13 +5,13 @@
         <import addon="script.module.bossanova808" version="1.0.0" />
         <import addon="script.module.infotagger" version="0.0.7" />
     </requires>
-    <!-- A service entrypoint to keep track of playbacks -->
+    <!-- The main service entry point, to keep track of playbacks -->
     <extension point="xbmc.service" library="service.py" />
-    <!-- ...and a plugin entrypoint to handle presenting and playing media from the switchback playlist -->
+    <!-- ...and a plugin entry point, to handle presenting and playing media from the switchback playlist -->
     <extension point="xbmc.python.pluginsource" library="plugin.py">
         <provides>video audio</provides>
     </extension>
-    <!-- ...and a context menu extension point -->
+    <!-- ...and a context menu extension point, for another playback mechanism -->
     <extension point="kodi.context.item">
         <menu id="kodi.core.main">
             <item library="context_menu.py" args="switchback">
@@ -25,10 +25,10 @@
         </menu>
     </extension>
     <extension point="xbmc.addon.metadata">
-        <summary lang="en_GB">Utility for fast switching between recently played media.</summary>
+        <summary lang="en_GB">Switchback is a Kodi utility for fast switching between recently played media.</summary>
         <description lang="en_GB">
 Kodi utility for fast switching between recently played media.
-Keeps a list of recently played media - supports Kodi Addons, library episodes and movies, PVR (live and recordings), and non-library videos.
+Keeps a list of recently played videos.
 The primary intended use is to make for super easy Switchback between two in progress video. See Wiki for usage notes including how to bind remote/keyboard controls for instant Switchback.
 Consider this scenario:
 * You're watching 'video A' with your partner. You're interrupted, and your partner needs to tend to the kids/howl at the moon.

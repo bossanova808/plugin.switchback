@@ -1,7 +1,7 @@
 import os
 
 from bossanova808.utilities import *
-from bossanova808.playback import PlaybackList, Playback
+from bossanova808.playback import PlaybackList
 
 
 class Store:
