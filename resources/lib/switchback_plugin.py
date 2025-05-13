@@ -2,8 +2,7 @@ from urllib.parse import parse_qs
 
 import xbmcplugin
 
-# noinspection PyPackages
-from .store import Store
+from resources.lib.store import Store
 from bossanova808.utilities import *
 from bossanova808.notify import Notify
 
@@ -38,9 +37,9 @@ def run(args):
 
             # Notify the user and set properties so we can identify this playback as having been originated from a Switchback
             Notify.kodi_notification(f"{switchback_to_play.pluginlabel}", 3000, ADDON_ICON)
-            HOME_WINDOW.setProperty('Switchback', 'true')
-            HOME_WINDOW.setProperty('Switchback.Path', switchback_to_play.path)
+            HOME_WINDOW.setProperty('Switchback', switchback_to_play.path)
 
+            # PVR HACK!
             # setResolvedUrl does not handle PVR links properly, see https://forum.kodi.tv/showthread.php?tid=381623
             # (TODO: remove this hack when setResolvedUrl is fixed to handle PVR links)
             if "pvr://" in switchback_to_play.path:
@@ -50,13 +49,12 @@ def run(args):
                 built_in = f'PlayMedia("{switchback_to_play.path}",resume)'
                 Logger.debug("Working around PVR links not being handled by setResolvedUrl, using PlayMedia instead:", built_in)
                 # Can't use a property on the ListItem here, so set them on the Home Window instead
-                Store.update_home_window_properties_for_playback(switchback_to_play.path)
+                Store.update_home_window_switchback_property(switchback_to_play.path)
                 xbmc.executebuiltin(built_in)
             # For all things setResolvedUrl can handle...
             else:
                 list_item = switchback_to_play.create_list_item(offscreen=True)
-                list_item.setProperty('Switchback', 'true')
-                list_item.setProperty('Switchback.Path', switchback_to_play.path)
+                list_item.setProperty('Switchback', switchback_to_play.path)
                 xbmcplugin.setResolvedUrl(plugin_instance, True, list_item)
 
         except IndexError:
@@ -70,18 +68,17 @@ def run(args):
             Logger.info(f"Deleting playback {index_to_remove[0]} from Switchback list")
             Store.switchback.list.remove(Store.switchback.list[int(index_to_remove[0])])
             Store.switchback.save_to_file()
-            Store.update_home_window_properties_for_context_menu()
+            Store.update_home_window_properties_for_switchback_context_menu()
             # Force refresh the list
-            Logger.debug("Force refresh the container, so Kodi immediately displays the updated Switchback list")
+            Logger.debug("Force refreshing the container, so Kodi immediately displays the updated Switchback list")
             xbmc.executebuiltin("Container.Refresh")
 
-    # Default mode - show the whole Switchback List (each of which has context menu option to delete itself)
+    # Default mode - show the whole Switchback List (each of which has a context menu option to delete itself)
     else:
         for index, playback in enumerate(Store.switchback.list[0:Store.maximum_list_length]):
             list_item = playback.create_list_item()
             list_item.addContextMenuItems([(LANGUAGE(32004), "RunPlugin(plugin://plugin.switchback?mode=delete&index=" + str(index) + ")")])
-            list_item.setProperty('Switchback', 'true')
-            list_item.setProperty('Switchback.Path', playback.path)
+            list_item.setProperty('Switchback', playback.path)
             xbmcplugin.addDirectoryItem(plugin_instance, playback.path, list_item)
 
         xbmcplugin.endOfDirectory(plugin_instance, cacheToDisc=False)

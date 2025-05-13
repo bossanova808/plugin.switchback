@@ -1,10 +1,6 @@
 from bossanova808.utilities import *
-# noinspection PyPackages
-from .store import Store
-# noinspection PyPackages
+from resources.lib.store import Store
 from bossanova808.playback import Playback
-import xbmc
-import json
 
 
 class KodiPlayer(xbmc.Player):
@@ -31,11 +27,11 @@ class KodiPlayer(xbmc.Player):
             # retrieve the previously recorded Playback details from the list. Set the Home Window properties that have not yet been set.
             if item.getProperty('Switchback'):
                 Logger.debug("Switchback triggered playback, so finding and re-using existing Playback object")
-                Store.current_playback = Store.switchback.find_playback_by_path(item.getProperty('Switchback.Path') or item.getPath())
+                Store.current_playback = Store.switchback.find_playback_by_path(item.getProperty('Switchback') or item.getPath())
                 if Store.current_playback:
                     Logger.debug("Re-using previously stored Playback object (ListItem):", Store.current_playback)
-                    # Set these here so they can be used/cleared in onPlaybackFinished below
-                    Store.update_home_window_properties_for_playback(Store.current_playback.path)
+                    # We won't have access to the item once playback is finishes, so set a property now so it can be used/cleared in onPlaybackFinished below
+                    Store.update_home_window_switchback_property(Store.current_playback.path)
                     return
                 else:
                     Logger.error(f"Switchback triggered playback (ListItem), but no playback found in the list for this path - this shouldn't happen?!", Store.current_playback.path)
@@ -43,7 +39,7 @@ class KodiPlayer(xbmc.Player):
             # If the current playback was Switchback-triggered (PVR),
             # retrieve the previously recorded Playback details from the list. The Home Window properties are already set.
             elif HOME_WINDOW.getProperty('Switchback'):
-                Store.current_playback = Store.switchback.find_playback_by_path(HOME_WINDOW.getProperty('Switchback.Path'))
+                Store.current_playback = Store.switchback.find_playback_by_path(HOME_WINDOW.getProperty('Switchback'))
                 if Store.current_playback:
                     Logger.debug("Re-using previously stored Playback object (PVR):", Store.current_playback)
                     return
@@ -54,85 +50,7 @@ class KodiPlayer(xbmc.Player):
             # Create a new Playback object and record the details/
             Logger.debug("Not a Switchback playback, or error retrieving previous Playback, so creating a new Playback object to record details")
             Store.current_playback = Playback()
-            Store.current_playback.file = self.getPlayingFile()
-            Store.current_playback.label = item.getLabel()
-            Store.current_playback.label = item.getLabel2()
-            Store.current_playback.path = item.getPath()
-
-            # SOURCE - Kodi Library (...get DBID), PVR, or Non-Library Media?
-            Store.current_playback.dbid = int(xbmc.getInfoLabel(f'VideoPlayer.DBID')) if xbmc.getInfoLabel(f'VideoPlayer.DBID') else None
-            if Store.current_playback.dbid:
-                Store.current_playback.source = "kodi_library"
-            elif 'channels' in Store.current_playback.file:
-                Store.current_playback.source = "pvr_live"
-            elif 'recordings' in Store.current_playback.file:
-                Store.current_playback.source = "pvr_recording"
-            elif 'http' in Store.current_playback.file:
-                Store.current_playback.source = "addon"
-
-            else:
-                Logger.info("Not from Kodi library, not PVR, not an http source - must be a non-library media file")
-                Store.current_playback.source = "file"
-
-            # TITLE
-            if Store.current_playback.source != "pvr_live":
-                Store.current_playback.title = xbmc.getInfoLabel(f'VideoPlayer.Title')
-            else:
-                Store.current_playback.title = xbmc.getInfoLabel('VideoPlayer.ChannelName')
-
-            # DETERMINE THE MEDIA TYPE - not 100% on the logic here...
-            if xbmc.getInfoLabel('VideoPlayer.TVShowTitle'):
-                Store.current_playback.type = "episode"
-                Store.current_playback.tvshowdbid = int(xbmc.getInfoLabel('VideoPlayer.TvShowDBID')) if xbmc.getInfoLabel('VideoPlayer.TvShowDBID') else None
-            elif Store.current_playback.dbid:
-                Store.current_playback.type = "movie"
-            elif xbmc.getInfoLabel('VideoPlayer.ChannelName'):
-                Store.current_playback.type = "pvr"
-            else:
-                Store.current_playback.type = "file"
-
-            # Initialise PLAYBACK TIME and DURATION
-            if Store.current_playback.source != "pvr_live":
-                Store.current_playback.totaltime = Store.kodi_player.getTotalTime()
-                # Times in form 1:35:23 don't seem to work properly, seeing inaccurate durations, so use float from getTotalTime() below instead
-                Store.current_playback.duration = Store.kodi_player.getTotalTime()
-                # This will get updated as playback progresses, by the monitot but initialise here...
-                Store.current_playback.resumetime = Store.kodi_player.getTime()
-
-            # ARTWORK - POSTER, FANART and THUMBNAIL
-            Store.current_playback.poster = clean_art_url(xbmc.getInfoLabel('Player.Art(tvshow.poster)') or xbmc.getInfoLabel('Player.Art(poster)') or xbmc.getInfoLabel('Player.Art(thumb)'))
-            Store.current_playback.fanart = clean_art_url(xbmc.getInfoLabel('Player.Art(fanart)'))
-            Store.current_playback.thumbnail = clean_art_url(xbmc.getInfoLabel('Player.Art(thumb)') or item.getArt('thumb'))
-
-            # OTHER DETAILS
-            # Episodes & Movies
-            Store.current_playback.year = int(xbmc.getInfoLabel(f'VideoPlayer.Year')) if xbmc.getInfoLabel(f'VideoPlayer.Year') else None
-            # Episodes
-            Store.current_playback.showtitle = xbmc.getInfoLabel('VideoPlayer.TVShowTitle')
-            Store.current_playback.season = int(xbmc.getInfoLabel('VideoPlayer.Season')) if xbmc.getInfoLabel('VideoPlayer.Season') else None
-            Store.current_playback.episode = int(xbmc.getInfoLabel('VideoPlayer.Episode')) if xbmc.getInfoLabel('VideoPlayer.Episode') else None
-            # PVR Live/Recordings
-            Store.current_playback.channelname = xbmc.getInfoLabel('VideoPlayer.ChannelName')
-            Store.current_playback.channelnumberlabel = xbmc.getInfoLabel('VideoPlayer.ChannelNumberLabel')
-            Store.current_playback.channelgroup = xbmc.getInfoLabel('VideoPlayer.ChannelGroup')
-
-            # NUMBER OF SEASONS
-            # If it's a TV Episode, we want the number of seasons so we can force-browse to the appropriate spot after a Swtichback initiated playback
-            if Store.current_playback.tvshowdbid:
-                json_dict = {
-                        "jsonrpc":"2.0",
-                        "id":"VideoLibrary.GetSeasons",
-                        "method":"VideoLibrary.GetSeasons",
-                        "params":{
-                                "tvshowid":Store.current_playback.tvshowdbid,
-                        },
-                }
-                query = json.dumps(json_dict)
-                properties_json = send_kodi_json(f'Get seasons details for tv show {Store.current_playback.showtitle}', query)
-                properties = properties_json['result']
-                # {'limits': {'end': 2, 'start': 0, 'total': 2}, 'seasons': [{'label': 'Season 1', 'seasonid': 131094}, {'label': 'Season 2', 'seasonid': 131095}]}
-                Store.current_playback.totalseasons = properties['limits']['total']
-                # Playback ended by simply running out (i.e. user didn't stop it)
+            Store.current_playback.update_playback_details_from_listitem(item)
 
     def onPlayBackEnded(self):
         self.onPlaybackFinished()
@@ -148,7 +66,7 @@ class KodiPlayer(xbmc.Player):
 
         :return:
         """
-        if not Store.current_playback or not Store.current_playback.file:
+        if not Store.current_playback or not Store.current_playback.path:
             Logger.error("onPlaybackFinished with no current playback details available?! ...not recording this playback")
             return
 
@@ -156,10 +74,10 @@ class KodiPlayer(xbmc.Player):
         Logger.debug("onPlaybackFinished with Store.switchback.list: ", Store.switchback.list)
 
         # Was this a Switchback-initiated playback?
+        # (This property was set above in onAVStarted if the ListItem property was set, or explicitly in the PVR HACK! section in switchback_plugin.py)
         switchback_playback = HOME_WINDOW.getProperty('Switchback')
         # Clear the property if set, now playback has finished
         HOME_WINDOW.clearProperty('Switchback')
-        HOME_WINDOW.clearProperty('Switchback.Path')
 
         # If we Switchbacked to an episode, force Kodi to browse to the Show/Season
         if switchback_playback == 'true':
@@ -205,4 +123,4 @@ class KodiPlayer(xbmc.Player):
         Logger.debug("Saving updated Store.switchback.list:", Store.switchback.list)
         Store.switchback.save_to_file()
         # & make sure the context menu items are updated
-        Store.update_home_window_properties_for_context_menu()
+        Store.update_home_window_properties_for_switchback_context_menu()

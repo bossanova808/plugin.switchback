@@ -35,7 +35,7 @@ class Store:
         Store.load_config_from_settings()
         Store.load_config_from_kodi_settings()
         Store.switchback.load_or_init()
-        Store.update_home_window_properties_for_context_menu()
+        Store.update_home_window_properties_for_switchback_context_menu()
 
     @staticmethod
     def load_config_from_settings():
@@ -57,20 +57,19 @@ class Store:
         Logger.info(f"Flatten TV Shows is: {Store.flatten_tvshows}")
 
     @staticmethod
-    def update_home_window_properties_for_context_menu():
+    def update_home_window_properties_for_switchback_context_menu():
         if Store.enable_context_menu:
             Logger.debug(f"Updating Home Window Properties for context menu")
             Logger.debug("Switchback PlaybackList is:", Store.switchback.list)
             set_property(HOME_WINDOW, 'Switchback_List_Length', str(len(Store.switchback.list)))
-            if len(Store.switchback.list) > 1:
-                set_property(HOME_WINDOW, 'Switchback_Item', Store.switchback.list[1].pluginlabel)
-            elif len(Store.switchback.list) == 1:
+            if len(Store.switchback.list) == 1:
                 set_property(HOME_WINDOW, 'Switchback_Item', Store.switchback.list[0].pluginlabel)
+            elif len(Store.switchback.list) > 1:
+                set_property(HOME_WINDOW, 'Switchback_Item', Store.switchback.list[1].pluginlabel)
             else:
                 clear_property(HOME_WINDOW, 'Switchback_Item')
 
     @staticmethod
-    def update_home_window_properties_for_playback(path: str):
+    def update_home_window_switchback_property(path: str):
         Logger.debug(f"Updating Home Window Properties for playback, path: {path}")
-        set_property(HOME_WINDOW, 'Switchback', 'true')
-        set_property(HOME_WINDOW, 'Switchback.Path', path)
+        set_property(HOME_WINDOW, 'Switchback', path)
