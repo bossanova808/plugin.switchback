@@ -1,6 +1,10 @@
 import os
 
-from bossanova808.utilities import *
+import xbmcvfs
+
+from bossanova808.constants import HOME_WINDOW, PROFILE, ADDON
+from bossanova808.logger import Logger
+from bossanova808.utilities import get_kodi_setting, set_property, clear_property
 from bossanova808.playback import PlaybackList
 
 
@@ -53,6 +57,7 @@ class Store:
 
     @staticmethod
     def load_config_from_kodi_settings():
+        # note that this should be an int, not bool - 0 for Never, 1 for 'if only one season, 2 for Always
         Store.flatten_tvshows = int(get_kodi_setting('videolibrary.flattentvshows'))
         Logger.info(f"Flatten TV Shows is: {Store.flatten_tvshows}")
 
