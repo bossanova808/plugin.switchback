@@ -43,6 +43,7 @@ class KodiPlayer(xbmc.Player):
                     return
                 else:
                     Logger.error("Switchback triggered playback, but no playback found in the list for this path - this shouldn't happen?!", path_to_find)
+
             # If we got to here, this was not a Switchback-triggered playback, or for some reason we've been unable to find the Playback.
             # Create a new Playback object and record the details.
             Logger.info("Not a Switchback playback, or error retrieving previous Playback, so creating a new Playback object to record details")
@@ -88,7 +89,7 @@ class KodiPlayer(xbmc.Player):
         # If we Switchbacked to an episode, force Kodi to browse to the Show/Season
         if switchback_playback:
             if Store.current_playback.type == "episode":
-                Logger.info(f"Force browsing to tvshow/season of just finished playback")
+                Logger.info("Force browsing to tvshow/season of just finished playback")
                 Logger.debug(f'flatten tvshows {Store.flatten_tvshows} totalseasons {Store.current_playback.totalseasons} dbid {Store.current_playback.dbid} tvshowdbid {Store.current_playback.tvshowdbid}')
                 # Default: Browse to the show
                 window = f'videodb://tvshows/titles/{Store.current_playback.tvshowdbid}'

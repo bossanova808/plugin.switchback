@@ -72,6 +72,7 @@ def run(args):
             else:
                 list_item.setProperty('Switchback', switchback_to_play.path)
                 xbmcplugin.setResolvedUrl(plugin_instance, True, list_item)
+                return
 
         except IndexError:
             Notify.error(TRANSLATE(32007))
@@ -79,10 +80,19 @@ def run(args):
 
     # Delete an item from the Switchback list - e.g. if it is not playing back properly from Switchback
     if mode and mode[0] == "delete":
-        index_to_remove = parsed_arguments.get('index', None)
-        if index_to_remove:
-            Logger.info(f"Deleting playback {index_to_remove[0]} from Switchback list")
-            Store.switchback.list.remove(Store.switchback.list[int(index_to_remove[0])])
+        index_values = parsed_arguments.get('index')
+        if index_values:
+            try:
+                idx = int(index_values[0])
+            except (ValueError, TypeError):
+                Logger.error("Invalid 'index' parameter for delete:", index_values)
+                return
+            if 0 <= idx < len(Store.switchback.list):
+                Logger.info(f"Deleting playback {idx} from Switchback list")
+                Store.switchback.list.pop(idx)
+            else:
+                Logger.error("Index out of range for delete:", idx)
+                return
             # Save the updated list and then reload it, just to be sure
             Store.switchback.save_to_file()
             Store.switchback.load_or_init()
@@ -109,10 +119,7 @@ def run(args):
             list_item.addContextMenuItems([(TRANSLATE(32004), "RunPlugin(plugin://plugin.switchback?mode=delete&index=" + str(index) + ")")])
             # For detecting Switchback playbacks (in player.py)
             list_item.setProperty('Switchback', playback.path)
-            # (TODO: remove this hack when setResolvedUrl/ListItems are fixed to properly handle PVR links in listitem.path)
-            # Don't use playback.path here, use list_item.getPath(), as the path may now have the plugin proxy url for PVR live playback
-            Logger.debug(f"^^^ Adding directory Item: {list_item.getPath()}")
-            xbmcplugin.addDirectoryItem(plugin_instance, list_item.getPath(), list_item)
+            xbmcplugin.addDirectoryItem(plugin_instance, playback.file, list_item)
 
         xbmcplugin.endOfDirectory(plugin_instance, cacheToDisc=False)
 
