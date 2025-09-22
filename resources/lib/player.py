@@ -42,8 +42,7 @@ class KodiPlayer(xbmc.Player):
                     Store.update_home_window_switchback_property(Store.current_playback.path)
                     return
                 else:
-                    Logger.error(f"Switchback triggered playback, but no playback found in the list for this path - this shouldn't happen?!", path_to_find)
-
+                    Logger.error("Switchback triggered playback, but no playback found in the list for this path - this shouldn't happen?!", path_to_find)
             # If we got to here, this was not a Switchback-triggered playback, or for some reason we've been unable to find the Playback.
             # Create a new Playback object and record the details.
             Logger.info("Not a Switchback playback, or error retrieving previous Playback, so creating a new Playback object to record details")
@@ -87,16 +86,17 @@ class KodiPlayer(xbmc.Player):
         HOME_WINDOW.clearProperty('Switchback')
 
         # If we Switchbacked to an episode, force Kodi to browse to the Show/Season
-        if switchback_playback == 'true':
+        if switchback_playback:
             if Store.current_playback.type == "episode":
                 Logger.info(f"Force browsing to tvshow/season of just finished playback")
                 Logger.debug(f'flatten tvshows {Store.flatten_tvshows} totalseasons {Store.current_playback.totalseasons} dbid {Store.current_playback.dbid} tvshowdbid {Store.current_playback.tvshowdbid}')
                 # Default: Browse to the show
                 window = f'videodb://tvshows/titles/{Store.current_playback.tvshowdbid}'
-                # If the user has Flatten TV shows set to 'never' (=0), browse to the actual season
-                if not Store.flatten_tvshows == 0:
+                # 0 = Never flatten → browse to show root
+                # 1 = If only one season → browse to season only when there are multiple seasons
+                # 2 = Always flatten → browse to season
+                if Store.flatten_tvshows == 2:
                     window += f'/{Store.current_playback.season}'
-                # Else if the user has Flatten TV shows set to 'If Only One Season' and there is indeed more than one season, browse to the actual season
                 elif Store.flatten_tvshows == 1 and Store.current_playback.totalseasons > 1:
                     window += f'/{Store.current_playback.season}'
 

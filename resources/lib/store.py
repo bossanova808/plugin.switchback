@@ -53,11 +53,11 @@ class Store:
         Store.save_across_sessions = ADDON.getSettingBool('save_across_sessions')
         Logger.info(f"Save across sessions is: {Store.save_across_sessions}")
         Store.enable_context_menu = ADDON.getSettingBool('enable_context_menu')
-        Logger.info(f"Enbale context menu is: {Store.enable_context_menu}")
+        Logger.info(f"Enable context menu is: {Store.enable_context_menu}")
 
     @staticmethod
     def load_config_from_kodi_settings():
-        # note that this should be an int, not bool - 0 for Never, 1 for 'if only one season, 2 for Always
+        # Note: this is an int, not a bool — 0 = Never, 1 = 'If only one season', 2 = Always
         Store.flatten_tvshows = int(get_kodi_setting('videolibrary.flattentvshows'))
         Logger.info(f"Flatten TV Shows is: {Store.flatten_tvshows}")
 

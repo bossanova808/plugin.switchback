@@ -68,6 +68,7 @@ def run(args):
             # # (TODO: remove this hack when setResolvedUrl/ListItems are fixed to properly handle PVR links in listitem.path)
             if "pvr://" in switchback_to_play.path:
                 pvr_hack(switchback_to_play.path)
+                return
             else:
                 list_item.setProperty('Switchback', switchback_to_play.path)
                 xbmcplugin.setResolvedUrl(plugin_instance, True, list_item)
@@ -91,8 +92,12 @@ def run(args):
             xbmc.executebuiltin("Container.Refresh")
 
     # (TODO: remove this hack when setResolvedUrl/ListItems are fixed to properly handle PVR links in listitem.path)
-    if mode and mode[0] == "pvr_hack":
-        path = parsed_arguments.get('path', None)[0]
+    elif mode and mode[0] == "pvr_hack":
+        path_values = parsed_arguments.get('path')
+        if not path_values:
+            Logger.error("Missing 'path' parameter for pvr_hack")
+            return
+        path = path_values[0]
         Logger.debug(f"Triggering PVR Playback hack for {path}")
         pvr_hack(path)
 
@@ -100,8 +105,9 @@ def run(args):
     else:
         for index, playback in enumerate(Store.switchback.list[0:Store.maximum_list_length]):
             list_item = playback.create_list_item_from_playback()
-
+            # Add delete option to this item
             list_item.addContextMenuItems([(TRANSLATE(32004), "RunPlugin(plugin://plugin.switchback?mode=delete&index=" + str(index) + ")")])
+            # For detecting Switchback playbacks (in player.py)
             list_item.setProperty('Switchback', playback.path)
             # (TODO: remove this hack when setResolvedUrl/ListItems are fixed to properly handle PVR links in listitem.path)
             # Don't use playback.path here, use list_item.getPath(), as the path may now have the plugin proxy url for PVR live playback
