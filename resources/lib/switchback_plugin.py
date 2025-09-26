@@ -23,7 +23,7 @@ def run():
     Logger.debug(parsed_arguments)
     mode = parsed_arguments.get('mode', None)
     if mode:
-        Logger.info(f"Switchback mode: {mode}")
+        Logger.info(f"Switchback mode: {mode[0]}")
     else:
         Logger.info("Switchback mode: default - generate 'folder' of items")
 
@@ -70,13 +70,16 @@ def run():
             else:
                 Logger.error("Index out of range for delete:", idx)
                 return
-            # Save the updated list and then reload it, just to be sure
-            Store.switchback.save_to_file()
-            Store.switchback.load_or_init()
-            Store.update_switchback_context_menu()
-            # Force refresh the Kodi list display
-            Logger.debug("Force refreshing the container, so Kodi immediately displays the updated Switchback list")
-            xbmc.executebuiltin("Container.Refresh")
+        else:
+            Logger.error("Missing 'index' parameter for delete")
+            return
+
+        # Save the updated list and then reload it, just to be sure
+        Store.switchback.save_to_file()
+        Store.switchback.load_or_init()
+        Store.update_switchback_context_menu()
+        Logger.debug("Force refreshing the container, so Kodi immediately displays the updated Switchback list")
+        xbmc.executebuiltin("Container.Refresh")
 
     # Default mode - show the whole Switchback List (each of which has a context menu option to delete itself)
     else:
