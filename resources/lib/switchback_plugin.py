@@ -6,13 +6,14 @@ import xbmc
 import xbmcplugin
 
 from resources.lib.store import Store
-from bossanova808.constants import TRANSLATE
+from bossanova808.constants import TRANSLATE, HOME_WINDOW
 from bossanova808.logger import Logger
 from bossanova808.notify import Notify
 
 
-def run(args):
+def run():
     Logger.start("(Plugin)")
+    # This also forces an update of the Switchback list from disk, in case of changes via the service side of things.
     Store()
 
     plugin_instance = int(sys.argv[1])
@@ -25,9 +26,6 @@ def run(args):
         Logger.info(f"Switchback mode: {mode}")
     else:
         Logger.info("Switchback mode: default - generate 'folder' of items")
-
-    # Always force an update of the Switchback list from disk, in case of changes via the service side of things.
-    Store.switchback.load_or_init()
 
     # Switchback mode - easily swap between switchback.list[0] and switchback.list[1]
     # If there's only one item in the list, then resume playing that item
@@ -44,16 +42,18 @@ def run(args):
 
             Logger.info(f"Switching back to: {switchback_to_play.pluginlabel} - path [{switchback_to_play.path}] file [{switchback_to_play.file}]")
 
-            # Notify the user and set properties so we can identify this playback as having been originated from a Switchback
-            Notify.kodi_notification(f"{switchback_to_play.pluginlabel}", 3000, switchback_to_play.poster)
-            list_item = switchback_to_play.create_list_item_from_playback(offscreen=True)
-            list_item.setProperty('Switchback', switchback_to_play.path)
-            xbmcplugin.setResolvedUrl(plugin_instance, True, list_item)
-            return
-
         except IndexError:
             Notify.error(TRANSLATE(32007))
             Logger.error("No Switchback found to play")
+            return
+
+        # Notify the user and set properties so we can identify this playback as having been originated from a Switchback
+        Notify.kodi_notification(f"{switchback_to_play.pluginlabel}", 3000, switchback_to_play.poster)
+        list_item = switchback_to_play.create_list_item_from_playback(offscreen=True)
+        list_item.setProperty('Switchback', switchback_to_play.path)
+        HOME_WINDOW.setProperty('Switchback', switchback_to_play.path)
+        xbmcplugin.setResolvedUrl(plugin_instance, True, list_item)
+        return
 
     # Delete an item from the Switchback list - e.g. if it is not playing back properly from Switchback
     if mode and mode[0] == "delete":

@@ -28,7 +28,7 @@ class KodiPlayer(xbmc.Player):
             item = self.getPlayingItem()
             file = self.getPlayingFile()
 
-            # If the current playback was Switchback-triggered from a Kodi ListItem (i.e. not PVR, see hack in switchback_plugin.py),
+            # If the current playback was Switchback-triggered from a Kodi ListItem,
             # retrieve the previously recorded Playback details from the list. Set the Home Window properties that have not yet been set.
             if item.getProperty('Switchback') or HOME_WINDOW.getProperty('Switchback'):
                 Logger.info("Switchback triggered playback, so attempting to find and re-use existing Playback object")
