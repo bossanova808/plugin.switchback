@@ -3,35 +3,14 @@ from urllib.parse import parse_qs
 
 # noinspection PyUnresolvedReferences
 import xbmc
-import xbmcgui
 import xbmcplugin
 
 from resources.lib.store import Store
-from bossanova808.constants import TRANSLATE, ADDON_ICON
+from bossanova808.constants import TRANSLATE
 from bossanova808.logger import Logger
 from bossanova808.notify import Notify
 
 
-# PVR HACK!
-# ListItems and setResolvedUrl does not handle PVR links properly, see https://forum.kodi.tv/showthread.php?tid=381623
-# (TODO: remove this hack when setResolvedUrl/ListItems are fixed to properly handle PVR links in listitem.path)
-def pvr_hack(path):
-    # Kodi is jonesing for one of these, so give it the sugar it needs, see: https://forum.kodi.tv/showthread.php?tid=381623&pid=3232778#pid3232778
-    xbmcplugin.setResolvedUrl(int(sys.argv[1]), False, xbmcgui.ListItem())
-    xbmc.PlayList(xbmc.PLAYLIST_VIDEO).clear()
-    # Get the full details from our stored playback
-    # pvr_playback = Store.switchback.find_playback_by_path(path)
-    builtin = f'PlayMedia("{path}"'
-    if "pvr://recordings" in path:
-        builtin += f',resume'
-    builtin += ")"
-    Logger.debug("Work around PVR links not being handled by ListItem/setResolvedUrl - use PlayMedia:", builtin)
-    # No ListItem to set a property on here, so set on the Home Window instead
-    Store.update_home_window_switchback_property(path)
-    xbmc.executebuiltin(builtin)
-
-
-# noinspection PyUnusedLocal
 def run(args):
     Logger.start("(Plugin)")
     Store()
@@ -47,7 +26,7 @@ def run(args):
     else:
         Logger.info("Switchback mode: default - generate 'folder' of items")
 
-    # Force an update of the Switchback list from disk, in case of changes via the service side of things.
+    # Always force an update of the Switchback list from disk, in case of changes via the service side of things.
     Store.switchback.load_or_init()
 
     # Switchback mode - easily swap between switchback.list[0] and switchback.list[1]
@@ -57,22 +36,20 @@ def run(args):
             if len(Store.switchback.list) == 1:
                 switchback_to_play = Store.switchback.list[0]
                 Logger.info(f"Playing Switchback[0] - path [{Store.switchback.list[0].path}]")
+                Logger.info(f"Playing Switchback[0] - file [{Store.switchback.list[0].file}]")
             else:
                 switchback_to_play = Store.switchback.list[1]
                 Logger.info(f"Playing Switchback[1] - path [{Store.switchback.list[1].path}]")
-            Logger.info(f"{switchback_to_play.pluginlabel}")
+                Logger.info(f"Playing Switchback[1] - file [{Store.switchback.list[1].file}]")
+
+            Logger.info(f"Switching back to: {switchback_to_play.pluginlabel} - path [{switchback_to_play.path}] file [{switchback_to_play.file}]")
 
             # Notify the user and set properties so we can identify this playback as having been originated from a Switchback
-            Notify.kodi_notification(f"{switchback_to_play.pluginlabel}", 3000, ADDON_ICON)
+            Notify.kodi_notification(f"{switchback_to_play.pluginlabel}", 3000, switchback_to_play.poster)
             list_item = switchback_to_play.create_list_item_from_playback(offscreen=True)
-            # # (TODO: remove this hack when setResolvedUrl/ListItems are fixed to properly handle PVR links in listitem.path)
-            if "pvr://" in switchback_to_play.path:
-                pvr_hack(switchback_to_play.path)
-                return
-            else:
-                list_item.setProperty('Switchback', switchback_to_play.path)
-                xbmcplugin.setResolvedUrl(plugin_instance, True, list_item)
-                return
+            list_item.setProperty('Switchback', switchback_to_play.path)
+            xbmcplugin.setResolvedUrl(plugin_instance, True, list_item)
+            return
 
         except IndexError:
             Notify.error(TRANSLATE(32007))
@@ -101,16 +78,6 @@ def run(args):
             Logger.debug("Force refreshing the container, so Kodi immediately displays the updated Switchback list")
             xbmc.executebuiltin("Container.Refresh")
 
-    # (TODO: remove this hack when setResolvedUrl/ListItems are fixed to properly handle PVR links in listitem.path)
-    elif mode and mode[0] == "pvr_hack":
-        path_values = parsed_arguments.get('path')
-        if not path_values:
-            Logger.error("Missing 'path' parameter for pvr_hack")
-            return
-        path = path_values[0]
-        Logger.debug(f"Triggering PVR Playback hack for {path}")
-        pvr_hack(path)
-
     # Default mode - show the whole Switchback List (each of which has a context menu option to delete itself)
     else:
         for index, playback in enumerate(Store.switchback.list[0:Store.maximum_list_length]):
@@ -119,7 +86,7 @@ def run(args):
             list_item.addContextMenuItems([(TRANSLATE(32004), "RunPlugin(plugin://plugin.switchback?mode=delete&index=" + str(index) + ")")])
             # For detecting Switchback playbacks (in player.py)
             list_item.setProperty('Switchback', playback.path)
-            xbmcplugin.addDirectoryItem(plugin_instance, playback.file, list_item)
+            xbmcplugin.addDirectoryItem(plugin_instance, playback.file if playback.source != "addon" else playback.path, list_item)
 
         xbmcplugin.endOfDirectory(plugin_instance, cacheToDisc=False)
 
