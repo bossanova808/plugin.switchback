@@ -109,11 +109,6 @@ class KodiPlayer(xbmc.Player):
         # This rather long-windeed approach is used to keep ALL the details recorded from the original playback
         # (in case they don't make it through when the playback is Switchback initiated - as sometimes seems to be the case)
 
-        # for previous_playback in Store.switchback.list:
-        #     if previous_playback.path == Store.current_playback.path:
-        #         playback_to_remove = previous_playback
-        #         break
-
         playback_to_remove = Store.switchback.find_playback_by_path(Store.current_playback.path)
         if playback_to_remove:
             Logger.debug("Updating Playback and list order")
