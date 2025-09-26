@@ -54,6 +54,8 @@ def run():
         list_item.setProperty('Switchback', switchback_to_play.path)
         Store.update_home_window_switchback_property(switchback_to_play.path)
         xbmcplugin.setResolvedUrl(plugin_instance, True, list_item)
+        Logger.stop("(Plugin)")
+        return
 
     # Delete an item from the Switchback list - e.g. if it is not playing back properly from Switchback
     if "delete" in modes:
