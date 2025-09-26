@@ -22,14 +22,15 @@ def run():
     parsed_arguments = parse_qs(sys.argv[2][1:])
     Logger.debug(parsed_arguments)
     mode = parsed_arguments.get('mode', None)
-    if mode:
-        Logger.info(f"Switchback mode: {mode[0]}")
+    modes = set([m.strip() for m in mode[0].split(",") if m.strip()]) if mode else set()
+    if modes:
+        Logger.info(f"Switchback mode: {mode}")
     else:
         Logger.info("Switchback mode: default - generate 'folder' of items")
 
     # Switchback mode - easily swap between switchback.list[0] and switchback.list[1]
     # If there's only one item in the list, then resume playing that item
-    if mode and mode[0] == "switchback":
+    if "switchback" in modes:
         try:
             if len(Store.switchback.list) == 1:
                 switchback_to_play = Store.switchback.list[0]
@@ -51,12 +52,11 @@ def run():
         Notify.kodi_notification(f"{switchback_to_play.pluginlabel}", 3000, switchback_to_play.poster)
         list_item = switchback_to_play.create_list_item_from_playback(offscreen=True)
         list_item.setProperty('Switchback', switchback_to_play.path)
-        HOME_WINDOW.setProperty('Switchback', switchback_to_play.path)
+        Store.update_home_window_switchback_property(switchback_to_play.path)
         xbmcplugin.setResolvedUrl(plugin_instance, True, list_item)
-        return
 
     # Delete an item from the Switchback list - e.g. if it is not playing back properly from Switchback
-    if mode and mode[0] == "delete":
+    if "delete" in modes:
         index_values = parsed_arguments.get('index')
         if index_values:
             try:
@@ -90,7 +90,6 @@ def run():
             # For detecting Switchback playbacks (in player.py)
             list_item.setProperty('Switchback', playback.path)
             xbmcplugin.addDirectoryItem(plugin_instance, playback.file if playback.source != "addon" else playback.path, list_item)
-
         xbmcplugin.endOfDirectory(plugin_instance, cacheToDisc=False)
 
     # And we're done...
