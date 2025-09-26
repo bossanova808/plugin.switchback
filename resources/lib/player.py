@@ -49,7 +49,7 @@ class KodiPlayer(xbmc.Player):
             Logger.info("Not a Switchback playback, or error retrieving previous Playback, so creating a new Playback object to record details")
             Store.current_playback = Playback()
             Store.current_playback.file = file
-            Store.current_playback.update_playback_details_from_listitem(item)
+            Store.current_playback.update_playback_details(item)
 
     # Playback finished 'naturally'
     def onPlayBackEnded(self):

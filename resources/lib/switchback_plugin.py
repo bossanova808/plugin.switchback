@@ -4,11 +4,28 @@ from urllib.parse import parse_qs
 # noinspection PyUnresolvedReferences
 import xbmc
 import xbmcplugin
+import xbmcgui
 
 from resources.lib.store import Store
-from bossanova808.constants import TRANSLATE, HOME_WINDOW
+from bossanova808.constants import TRANSLATE
 from bossanova808.logger import Logger
 from bossanova808.notify import Notify
+
+
+# PVR HACK!
+# Needed to trigger live PVR playback with proper PVR controls.
+# See https://forum.kodi.tv/showthread.php?tid=381623
+def pvr_hack(path):
+    xbmc.PlayList(xbmc.PLAYLIST_VIDEO).clear()
+    # Kodi is jonesing for one of these, so give it the sugar it needs, see: https://forum.kodi.tv/showthread.php?tid=381623&pid=3232778#pid3232778
+    xbmcplugin.setResolvedUrl(int(sys.argv[1]), False, xbmcgui.ListItem())
+    # Get the full details from our stored playback
+    # pvr_playback = Store.switchback.find_playback_by_path(path)
+    builtin = f'PlayMedia("{path}")'
+    Logger.debug("Work around PVR links not being handled by ListItem/setResolvedUrl - use PlayMedia instead:", builtin)
+    # No ListItem to set a property on here, so set on the Home Window instead
+    Store.update_home_window_switchback_property(path)
+    xbmc.executebuiltin(builtin)
 
 
 def run():
@@ -31,34 +48,41 @@ def run():
     # Switchback mode - easily swap between switchback.list[0] and switchback.list[1]
     # If there's only one item in the list, then resume playing that item
     if "switchback" in modes:
-        try:
-            if len(Store.switchback.list) == 1:
-                switchback_to_play = Store.switchback.list[0]
-                Logger.info(f"Playing Switchback[0] - path [{Store.switchback.list[0].path}]")
-                Logger.info(f"Playing Switchback[0] - file [{Store.switchback.list[0].file}]")
-            else:
-                switchback_to_play = Store.switchback.list[1]
-                Logger.info(f"Playing Switchback[1] - path [{Store.switchback.list[1].path}]")
-                Logger.info(f"Playing Switchback[1] - file [{Store.switchback.list[1].file}]")
 
-            Logger.info(f"Switching back to: {switchback_to_play.pluginlabel} - path [{switchback_to_play.path}] file [{switchback_to_play.file}]")
-
-        except IndexError:
+        # First, determine what to play, if anything...
+        if not Store.switchback.list:
             Notify.error(TRANSLATE(32007))
             Logger.error("No Switchback found to play")
             return
 
-        # Notify the user and set properties so we can identify this playback as having been originated from a Switchback
+        if len(Store.switchback.list) == 1:
+            switchback_to_play = Store.switchback.list[0]
+            Logger.debug("Switchback to index 0")
+        else:
+            switchback_to_play = Store.switchback.list[1]
+            Logger.debug("Switchback to index 1")
+
+        # We know what to play...
+        Logger.info(f"Switchback! Switching back to: {switchback_to_play.pluginlabel}")
+        Logger.debug(f"Path: [{switchback_to_play.path}]")
+        Logger.debug(f"File: [{switchback_to_play.file}]")
         Notify.kodi_notification(f"{switchback_to_play.pluginlabel}", 3000, switchback_to_play.poster)
-        list_item = switchback_to_play.create_list_item_from_playback(offscreen=True)
+
+        # Short circuit here if PVR, see pvr_hack above.
+        if 'pvr://channels' in switchback_to_play.path:
+            pvr_hack(switchback_to_play.path)
+            return
+
+        # Normal path for everything else
+        list_item = switchback_to_play.create_list_item_from_playback()
         list_item.setProperty('Switchback', switchback_to_play.path)
-        Store.update_home_window_switchback_property(switchback_to_play.path)
+        # Store.update_home_window_switchback_property(switchback_to_play.path)
         xbmcplugin.setResolvedUrl(plugin_instance, True, list_item)
         Logger.stop("(Plugin)")
         return
 
     # Delete an item from the Switchback list - e.g. if it is not playing back properly from Switchback
-    if "delete" in modes:
+    elif "delete" in modes:
         index_values = parsed_arguments.get('index')
         if index_values:
             try:
@@ -83,6 +107,13 @@ def run():
         Logger.debug("Force refreshing the container, so Kodi immediately displays the updated Switchback list")
         xbmc.executebuiltin("Container.Refresh")
 
+    # See pvr_hack(path) above
+    elif "pvr_hack" in modes:
+        path = parsed_arguments.get('path', None)[0]
+        Logger.debug(f"Triggering PVR Playback hack for {path}")
+        pvr_hack(path)
+        return
+
     # Default mode - show the whole Switchback List (each of which has a context menu option to delete itself)
     else:
         for index, playback in enumerate(Store.switchback.list[0:Store.maximum_list_length]):
@@ -91,7 +122,17 @@ def run():
             list_item.addContextMenuItems([(TRANSLATE(32004), "RunPlugin(plugin://plugin.switchback?mode=delete&index=" + str(index) + ")")])
             # For detecting Switchback playbacks (in player.py)
             list_item.setProperty('Switchback', playback.path)
-            xbmcplugin.addDirectoryItem(plugin_instance, playback.file if playback.source != "addon" else playback.path, list_item)
+            # Use the 'proxy' URL if we're dealing with pvr_live and need to trigger the PVR playback hack
+            if playback.source == "pvr_live":
+                proxy_url = f"plugin://plugin.switchback?mode=pvr_hack&path={playback.path}"
+                Logger.debug(f"Creating directory item with pvr_hack proxy url: {proxy_url}")
+                xbmcplugin.addDirectoryItem(plugin_instance, proxy_url, list_item)
+            # Otherwise use file for all library things, and path for addons (as those may include tokens etc)
+            else:
+                url = playback.file if playback.source not in ["addon", "pvr_live"] else playback.path
+                Logger.debug(f"Creating directory item with url: {url}")
+                xbmcplugin.addDirectoryItem(plugin_instance, url, list_item)
+
         xbmcplugin.endOfDirectory(plugin_instance, cacheToDisc=False)
 
     # And we're done...
