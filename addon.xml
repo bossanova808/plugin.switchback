@@ -26,6 +26,7 @@
     </extension>
     <extension point="xbmc.addon.metadata">
         <summary lang="en_GB">Switchback is a Kodi utility for fast switching between recently played media.</summary>
+        <summary lang="sv_SE">Switchback är ett Kodi-verktyg för snabb växling mellan nyligen spelade medier.</summary>
         <description lang="en_GB">
 Kodi utility for fast switching between recently played media.
 Keeps a list of recently played videos.
@@ -36,6 +37,17 @@ Consider this scenario:
 * Your partner comes back.
 * You hit your one button 'Switchback' and 'video A' instantly starts playing again - no need for tedious navigation etc.
 * You're interrupted, again! The moon really is so very bright tonight. Hit your 'Switchback' button to instantly resume 'video B', again with no tedious navigation.
+        </description>
+        <description lang="sv_SE">
+Kodi-verktyg för snabb växling mellan nyligen spelade medier.
+Spara en lista över nyligen spelade videor.
+Den primära användningen är att göra det superenkelt att växla mellan två pågående videor. Se Wiki för användningsanvisningar, inklusive hur du kopplar fjärrkontroll/tangentbordskontroller för omedelbar växling.
+Tänk dig följande scenario:
+* Du tittar på ”video A” med din partner. Ni blir avbrutna och din partner måste ta hand om barnen/skälla på månen.
+* Du navigerar till ”video B” och tittar på den medan du väntar.
+* Din partner kommer tillbaka.
+* Du trycker på din enda knapp ”Switchback” och ”video A” börjar omedelbart spelas upp igen – utan tråkig navigering etc.
+* Du blir avbruten igen! Månen är verkligen väldigt ljus ikväll. Tryck på din ’Switchback’-knapp för att omedelbart återuppta ”video B”, återigen utan tråkig navigering.
         </description>
         <platform>all</platform>
         <license>GPL-3.0-only</license>
