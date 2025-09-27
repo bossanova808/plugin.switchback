@@ -66,7 +66,8 @@ def run():
         Logger.info(f"Switchback! Switching back to: {switchback_to_play.pluginlabel}")
         Logger.debug(f"Path: [{switchback_to_play.path}]")
         Logger.debug(f"File: [{switchback_to_play.file}]")
-        Notify.kodi_notification(f"{switchback_to_play.pluginlabel}", 3000, switchback_to_play.poster)
+        image = switchback_to_play.poster or switchback_to_play.icon
+        Notify.kodi_notification(f"{switchback_to_play.pluginlabel}", 3000, image)
 
         # Short circuit here if PVR, see pvr_hack above.
         if 'pvr://channels' in switchback_to_play.path:
@@ -109,7 +110,11 @@ def run():
 
     # See pvr_hack(path) above
     elif "pvr_hack" in modes:
-        path = parsed_arguments.get('path', None)[0]
+        path_values = parsed_arguments.get('path')
+        if not path_values or not path_values[0]:
+            Logger.error("Missing 'path' parameter for pvr_hack")
+            return
+        path = path_values[0]
         Logger.debug(f"Triggering PVR Playback hack for {path}")
         pvr_hack(path)
         return
@@ -127,10 +132,14 @@ def run():
                 proxy_url = f"plugin://plugin.switchback?mode=pvr_hack&path={playback.path}"
                 Logger.debug(f"Creating directory item with pvr_hack proxy url: {proxy_url}")
                 xbmcplugin.addDirectoryItem(plugin_instance, proxy_url, list_item)
-            # Otherwise use file for all library things, and path for addons (as those may include tokens etc)
+                # TODO -> not sure if URL encoding needed in some cases?  Maybe CodeRabbit knows?
+                #     args = urlencode({'mode': 'pvr_hack', 'path': self.path})
+                #     proxy_url = f"plugin://plugin.switchback/?{args}"
+
+            # Otherwise use file for all Kodi library playbacks, and path for addons (as those may include tokens etc)
             else:
                 url = playback.file if playback.source not in ["addon", "pvr_live"] else playback.path
-                Logger.debug(f"Creating directory item with url: {url}")
+                # Logger.debug(f"Creating directory item with url: {url}")
                 xbmcplugin.addDirectoryItem(plugin_instance, url, list_item)
 
         xbmcplugin.endOfDirectory(plugin_instance, cacheToDisc=False)

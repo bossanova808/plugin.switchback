@@ -70,15 +70,12 @@ class KodiPlayer(xbmc.Player):
             Logger.error("onPlaybackFinished with no current playback details available?! ...not recording this playback")
             return
 
-        # if "pvr://" in Store.current_playback.path:
-        #     Logger.warning("PVR not supported due to Kodi bugs with setResolvedUrl/ListItems, so not recording this playback")
-        #     return
-
-        # Force an update of the Switchback list from disk, in case of changes via the plugin side of things.
         Store.switchback.load_or_init()
 
-        Logger.debug("onPlaybackFinished with Store.current_playback:", Store.current_playback)
-        Logger.debug("onPlaybackFinished with Store.switchback.list: ", Store.switchback.list)
+        Logger.debug("onPlaybackFinished with Store.current_playback:")
+        Logger.debug(Store.current_playback)
+        Logger.debug("onPlaybackFinished with Store.switchback.list:")
+        Logger.debug(Store.switchback.list)
 
         # Was this a Switchback-initiated playback?
         # (This property was set above in onAVStarted if the ListItem property was set, or explicitly in the PVR HACK! section in switchback_plugin.py this we only need to test for this)
@@ -86,9 +83,10 @@ class KodiPlayer(xbmc.Player):
         # Clear the property if set, now playback has finished
         HOME_WINDOW.clearProperty('Switchback')
 
-        # If we Switchbacked to an episode, force Kodi to browse to the Show/Season
+        # If we Switchbacked to a library episode, force Kodi to browse to the Show/Season
+        # (NB it is not possible to force Kodi to go to movies and focus a specific movie as far as I can determine)
         if switchback_playback:
-            if Store.current_playback.type == "episode":
+            if Store.current_playback.type == "episode" and Store.current_playback.source == "kodi_library":
                 Logger.info("Force browsing to tvshow/season of just finished playback")
                 Logger.debug(f'flatten tvshows {Store.flatten_tvshows} totalseasons {Store.current_playback.totalseasons} dbid {Store.current_playback.dbid} tvshowdbid {Store.current_playback.tvshowdbid}')
                 # Default: Browse to the show
@@ -98,17 +96,12 @@ class KodiPlayer(xbmc.Player):
                 # 2 = Always flatten → browse to season
                 if Store.flatten_tvshows == 2:
                     window += f'/{Store.current_playback.season}'
-                elif Store.flatten_tvshows == 1 and Store.current_playback.totalseasons > 1:
+                elif Store.flatten_tvshows == 1 and (Store.current_playback.totalseasons or 0) > 1:
                     window += f'/{Store.current_playback.season}'
-
                 xbmc.executebuiltin(f'ActivateWindow(Videos,{window},return)')
-            else:
-                # TODO - is is possible to force Kodi to go to movies and focus a specific movie?
-                pass
 
-        # This rather long-windeed approach is used to keep ALL the details recorded from the original playback
+        # This rather long-winded approach is used to keep ALL the details recorded from the original playback
         # (in case they don't make it through when the playback is Switchback initiated - as sometimes seems to be the case)
-
         playback_to_remove = Store.switchback.find_playback_by_path(Store.current_playback.path)
         if playback_to_remove:
             Logger.debug("Updating Playback and list order")
@@ -130,3 +123,6 @@ class KodiPlayer(xbmc.Player):
 
         # & make sure the context menu items are updated
         Store.update_switchback_context_menu()
+
+        # And update the current view so if we're in the Switchback plugin listing, it gets refreshed
+        xbmc.executebuiltin("Container.Refresh")
