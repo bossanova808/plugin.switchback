@@ -123,6 +123,14 @@ class KodiPlayer(xbmc.Player):
         # & make sure the context menu items are updated
         Store.update_switchback_context_menu()
 
-        # Update the current view so if we're in the Switchback plugin listing, it gets refreshed
-        # Use Kodi's AlarmClock to delay the refresh until UI has settled
-        xbmc.executebuiltin('AlarmClock(SwitchbackRefresh,Container.Refresh,00:00:01,silent)')
+        # And update the current view so if we're in the Switchback plugin listing, it gets refreshed
+        # Use a delayed refresh to ensure Kodi has fully returned to the listing - but don't block, use threading
+        def delayed_refresh():
+            xbmc.sleep(200)  # Wait 200ms for UI to settle
+            xbmc.executebuiltin("Container.Refresh")
+
+        import threading
+        threading.Thread(target=delayed_refresh).start()
+
+        # ALTERNATIVE, but behaviour is slower/more visually janky
+        # xbmc.executebuiltin('AlarmClock(SwitchbackRefresh,Container.Refresh,00:00:01,silent)')
