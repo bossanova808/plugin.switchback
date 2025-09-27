@@ -67,7 +67,7 @@ def run():
         Logger.debug(f"Path: [{switchback_to_play.path}]")
         Logger.debug(f"File: [{switchback_to_play.file}]")
         image = switchback_to_play.poster or switchback_to_play.icon
-        Notify.kodi_notification(f"{switchback_to_play.pluginlabel}", 3000, image)
+        Notify.kodi_notification(f"{switchback_to_play.pluginlabel_short}", 3000, image)
 
         # Short circuit here if PVR, see pvr_hack above.
         if 'pvr://channels' in switchback_to_play.path:

@@ -124,5 +124,6 @@ class KodiPlayer(xbmc.Player):
         # & make sure the context menu items are updated
         Store.update_switchback_context_menu()
 
-        # And update the current view so if we're in the Switchback plugin listing, it gets refreshed
-        xbmc.executebuiltin("Container.Refresh")
+        # Update the current view so if we're in the Switchback plugin listing, it gets refreshed
+        # Use Kodi's AlarmClock to delay the refresh until UI has settled
+        xbmc.executebuiltin('AlarmClock(SwitchbackRefresh,Container.Refresh,00:00:01,silent)')
