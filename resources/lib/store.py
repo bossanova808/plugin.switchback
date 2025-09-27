@@ -1,6 +1,10 @@
 import os
 
-from bossanova808.utilities import *
+import xbmcvfs
+
+from bossanova808.constants import HOME_WINDOW, PROFILE, ADDON
+from bossanova808.logger import Logger
+from bossanova808.utilities import get_kodi_setting, set_property, clear_property
 from bossanova808.playback import PlaybackList
 
 
@@ -49,10 +53,11 @@ class Store:
         Store.save_across_sessions = ADDON.getSettingBool('save_across_sessions')
         Logger.info(f"Save across sessions is: {Store.save_across_sessions}")
         Store.enable_context_menu = ADDON.getSettingBool('enable_context_menu')
-        Logger.info(f"Enbale context menu is: {Store.enable_context_menu}")
+        Logger.info(f"Enable context menu is: {Store.enable_context_menu}")
 
     @staticmethod
     def load_config_from_kodi_settings():
+        # Note: this is an int, not a bool — 0 = Never, 1 = 'If only one season', 2 = Always
         Store.flatten_tvshows = int(get_kodi_setting('videolibrary.flattentvshows'))
         Logger.info(f"Flatten TV Shows is: {Store.flatten_tvshows}")
 
