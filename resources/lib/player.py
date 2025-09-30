@@ -2,7 +2,7 @@ import xbmc
 
 from bossanova808.constants import HOME_WINDOW
 from bossanova808.logger import Logger
-from bossanova808.playback import Playback
+from resources.lib.playback import Playback
 
 from resources.lib.store import Store
 
