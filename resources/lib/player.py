@@ -84,7 +84,7 @@ class KodiPlayer(xbmc.Player):
 
         # If we Switchbacked to a library episode, force Kodi to browse to the Show/Season
         # (NB it is not possible to force Kodi to go to movies and focus a specific movie as far as I can determine)
-        if switchback_playback:
+        if Store.episode_force_browse and switchback_playback:
             if Store.current_playback.type == "episode" and Store.current_playback.source == "kodi_library":
                 Logger.info("Force browsing to tvshow/season of just finished playback")
                 Logger.debug(f'flatten tvshows {Store.flatten_tvshows} totalseasons {Store.current_playback.totalseasons} dbid {Store.current_playback.dbid} tvshowdbid {Store.current_playback.tvshowdbid}')
