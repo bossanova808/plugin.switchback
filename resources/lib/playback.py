@@ -389,14 +389,20 @@ class PlaybackList:
 
         # If the user wants to filter out watched items from the list
         if self.remove_watched_playbacks:
-            for item in self.list:
+            paths_to_remove = []
+            for item in list(self.list):
                 if item.dbid:
                     # Is it marked as watched in the DB?
                     playcount = get_playcount(item.type, item.dbid)
                     if playcount and playcount > 0:
                         list_needs_save = True
                         Logger.debug(f"Filtering watched playback from the list: [{item.pluginlabel}]")
-                        self.remove_playbacks_of_path(item.path)
+                        paths_to_remove.append(item.path)
+
+            if paths_to_remove:
+                list_needs_save = True
+                for path in paths_to_remove:
+                    self.remove_playbacks_of_path(path)
 
         # Update resume points with current data from the Kodi library (consider e.g. shared library scenarios)
         for item in self.list:
