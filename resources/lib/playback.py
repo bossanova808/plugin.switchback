@@ -8,12 +8,11 @@ import xbmcgui
 import xbmcvfs
 
 # noinspection PyPackages
-from bossanova808.utilities import clean_art_url, send_kodi_json
+from bossanova808.utilities import clean_art_url, send_kodi_json, get_resume_point, get_playcount
 # noinspection PyPackages
 from bossanova808.logger import Logger
 # noinspection PyUnresolvedReferences
 from infotagger.listitem import ListItemInfoTag
-
 
 @dataclass
 class Playback:
@@ -23,8 +22,6 @@ class Playback:
     file: Optional[str] = None
     path: Optional[str] = None
     type: Optional[str] = None  # episode, movie, video (per Kodi types) - song is the other type, but Switchback supports video only
-    # Seems to be a newer version of the above, but unclear how/when to use, and what about music??
-    # mediatype: str | None = None # mediatype: string - "video", "movie", "tvshow", "season", "episode" or "musicvideo"
     source: Optional[str] = None  # kodi_library, pvr_live, pvr_recording, addon, file
     dbid: Optional[int] = None
     tvshowdbid: Optional[int] = None
@@ -345,6 +342,7 @@ class PlaybackList:
     """
     list: List[Playback]
     file: str
+    remove_watched_playbacks: bool = False
 
     def toJson(self) -> str:
         """
@@ -386,8 +384,37 @@ class PlaybackList:
         except json.JSONDecodeError:
             Logger.error(f"JSONDecodeError - Unable to parse PlaybackList file [{self.file}] -  creating empty PlaybackList & file")
             self.init()
-        # Let unexpected exceptions propagate
-        # Logger.info("PlaybackList is:", self.list)
+
+        list_needs_save = False
+
+        # If the user wants to filter out watched items from the list
+        if self.remove_watched_playbacks:
+            paths_to_remove = []
+            for item in list(self.list):
+                if item.dbid:
+                    # Is it marked as watched in the DB?
+                    playcount = get_playcount(item.type, item.dbid)
+                    if playcount and playcount > 0:
+                        list_needs_save = True
+                        Logger.debug(f"Filtering watched playback from the list: [{item.pluginlabel}]")
+                        paths_to_remove.append(item.path)
+
+            if paths_to_remove:
+                list_needs_save = True
+                for path in paths_to_remove:
+                    self.remove_playbacks_of_path(path)
+
+        # Update resume points with current data from the Kodi library (consider e.g. shared library scenarios)
+        for item in self.list:
+            if item.dbid:
+                library_resume_point = get_resume_point(item.type, item.dbid)
+                if library_resume_point != item.resumetime:
+                    Logger.debug(f"Retrieved library resume point: {library_resume_point} != existing list resume point {item.resumetime} - updating playback list")
+                    list_needs_save = True
+                    item.resumetime = library_resume_point
+
+        if list_needs_save:
+            self.save_to_file()
 
     def save_to_file(self) -> None:
         """

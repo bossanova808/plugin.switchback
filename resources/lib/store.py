@@ -18,7 +18,7 @@ class Store:
     kodi_event_monitor = None
     kodi_player = None
     # Holds our playlist of things played back, in first is the latest order
-    switchback = PlaybackList([], xbmcvfs.translatePath(os.path.join(PROFILE, "switchback.json")))
+    switchback = None
     # When something is being played back, store the details
     current_playback = None
     # Playbacks are of these possible types
@@ -28,6 +28,9 @@ class Store:
     save_across_sessions = ADDON.getSettingBool('save_across_sessions')
     maximum_list_length = ADDON.getSettingInt('maximum_list_length')
     enable_context_menu = ADDON.getSettingBool('enable_context_menu')
+    episode_force_browse = ADDON.getSettingBool('episode_force_browse')
+    remove_watched_playbacks = ADDON.getSettingBool('remove_watched_playbacks')
+
     # GUI Settings - to work out how to force browse to a show after a switchback initiated playback
     flatten_tvshows = None
 
@@ -38,8 +41,10 @@ class Store:
         """
         Store.load_config_from_settings()
         Store.load_config_from_kodi_settings()
+        Store.switchback = PlaybackList([], xbmcvfs.translatePath(os.path.join(PROFILE, "switchback.json")), Store.remove_watched_playbacks)
         Store.switchback.load_or_init()
         Store.update_switchback_context_menu()
+
 
     @staticmethod
     def load_config_from_settings():
@@ -54,6 +59,10 @@ class Store:
         Logger.info(f"Save across sessions is: {Store.save_across_sessions}")
         Store.enable_context_menu = ADDON.getSettingBool('enable_context_menu')
         Logger.info(f"Enable context menu is: {Store.enable_context_menu}")
+        Store.remove_watched_playbacks = ADDON.getSettingBool('remove_watched_playbacks')
+        Logger.info(f"Remove watched playbacks is: {Store.remove_watched_playbacks}")
+        Store.episode_force_browse = ADDON.getSettingBool('episode_force_browse')
+        Logger.info(f"Episode force browse is: {Store.episode_force_browse}")
 
     @staticmethod
     def load_config_from_kodi_settings():

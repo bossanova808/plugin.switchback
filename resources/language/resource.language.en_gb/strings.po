@@ -44,3 +44,11 @@ msgstr ""
 msgctxt "#32009"
 msgid "Enable Switchback context menu items?"
 msgstr ""
+
+msgctxt "#32010"
+msgid "Automatically filter watched items out of the Switchback list?"
+msgstr ""
+
+msgctxt "#32011"
+msgid "(After a switchback playback) force browse to episode in library?"
+msgstr ""

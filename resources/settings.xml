@@ -20,6 +20,16 @@
                     <default>true</default>
                     <control type="toggle"/>
                 </setting>
+                <setting id="remove_watched_playbacks" type="boolean" label="32010" help="">
+                    <level>0</level>
+                    <default>true</default>
+                    <control type="toggle"/>
+                </setting>
+                <setting id="episode_force_browse" type="boolean" label="32011" help="">
+                    <level>0</level>
+                    <default>false</default>
+                    <control type="toggle"/>
+                </setting>
             </group>
         </category>
     </section>
