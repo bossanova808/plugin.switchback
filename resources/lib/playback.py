@@ -391,7 +391,7 @@ class PlaybackList:
         if self.remove_watched_playbacks:
             paths_to_remove = []
             for item in list(self.list):
-                # BD item?  Is it marked as watched in the DB?
+                # DB item?  Is it marked as watched in the DB?
                 if item.dbid:
                     playcount = get_playcount(item.type, item.dbid)
                     if playcount and playcount > 0:
@@ -403,11 +403,11 @@ class PlaybackList:
                 elif item.resumetime and item.totaltime:
                     percent_played = (item.resumetime / item.totaltime) * 100
                     # Use the user set playcount_minium_percent if there is one, or fallback to Kodi default 90 percent
-                    setting = float(get_advancedsetting('video/playcountminimumpercent')) or None
-                    playcount_minium_percent = float(setting) if setting else 90.0
+                    setting = get_advancedsetting('video/playcountminimumpercent')
+                    playcount_minium_percent = float(setting) if setting and setting != 0 else 90.0
                     if percent_played >= playcount_minium_percent:
                         list_needs_save = True
-                        Logger.debug(f"Filtering watched playback from the list (as {percent_played:.1f}% played over playcount_minium_percent {playcount_minium_percent}%: [{item.pluginlabel}]")
+                        Logger.debug(f"Filtering watched playback from the list (as {percent_played:.1f}% played over playcount_minium_percent {playcount_minium_percent}%): [{item.pluginlabel}]")
                         paths_to_remove.append(item.path)
 
             if paths_to_remove:
