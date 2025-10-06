@@ -4,7 +4,7 @@ import xbmcvfs
 
 from bossanova808.constants import HOME_WINDOW, PROFILE, ADDON
 from bossanova808.logger import Logger
-from bossanova808.utilities import get_kodi_setting, set_property, clear_property
+from bossanova808.utilities import get_kodi_setting, set_property, clear_property, get_advancedsetting
 from resources.lib.playback import PlaybackList
 
 

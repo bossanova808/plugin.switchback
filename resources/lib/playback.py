@@ -8,7 +8,7 @@ import xbmcgui
 import xbmcvfs
 
 # noinspection PyPackages
-from bossanova808.utilities import clean_art_url, send_kodi_json, get_resume_point, get_playcount
+from bossanova808.utilities import clean_art_url, send_kodi_json, get_resume_point, get_playcount, get_advancedsetting
 # noinspection PyPackages
 from bossanova808.logger import Logger
 # noinspection PyUnresolvedReferences
@@ -391,12 +391,22 @@ class PlaybackList:
         if self.remove_watched_playbacks:
             paths_to_remove = []
             for item in list(self.list):
+                # BD item?  Is it marked as watched in the DB?
                 if item.dbid:
-                    # Is it marked as watched in the DB?
                     playcount = get_playcount(item.type, item.dbid)
                     if playcount and playcount > 0:
                         list_needs_save = True
-                        Logger.debug(f"Filtering watched playback from the list: [{item.pluginlabel}]")
+                        Logger.debug(f"Filtering watched playback from the list (as playcount > 0 in Kodi DB): [{item.pluginlabel}]")
+                        paths_to_remove.append(item.path)
+
+                # Not a DB item, use a calculation instead and compare to the playcount_minium_percent
+                elif item.resumetime and item.totaltime:
+                    percent_played = (item.resumetime / item.totaltime) * 100
+                    # Use the user set playcount_minium_percent if there is one, or fallback to Kodi default 90 percent
+                    playcount_minium_percent = float(get_advancedsetting('video/playcountminimumpercent')) or 90.0
+                    if percent_played >= playcount_minium_percent:
+                        list_needs_save = True
+                        Logger.debug(f"Filtering watched playback from the list (as {percent_played:.1f}% played is over playcount_minium_percent {playcount_minium_percent}%: [{item.pluginlabel}]")
                         paths_to_remove.append(item.path)
 
             if paths_to_remove:
