@@ -394,7 +394,11 @@ class PlaybackList:
                 # DB item?  Is it marked as watched in the DB?
                 if item.dbid:
                     playcount = get_playcount(item.type, item.dbid)
-                    if playcount and playcount > 0:
+                    if playcount is None:
+                        Logger.warning(f"dbid {item.dbid} no longer found in Kodi library for [{item.pluginlabel}] - clearing dbid to prevent repeated errors")
+                        item.dbid = None
+                        list_needs_save = True
+                    elif playcount > 0:
                         list_needs_save = True
                         Logger.debug(f"Filtering watched playback from the list (as playcount > 0 in Kodi DB): [{item.pluginlabel}]")
                         paths_to_remove.append(item.path)
