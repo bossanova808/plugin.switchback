@@ -1,4 +1,9 @@
-v2.0.0 Re-write!
+v2.0.1 (2026-08-06)
+- Playback tracking now uses a shared class from script.module.bossanova808, common with other addons
+- Skip the old PVR playback workaround on Kodi 22+, using the normal playback path instead
+- Fix a rare crash when saving the Switchback list on Windows
+
+v2.0.0 Re-write! (2025-10-07)
 - Support addons
 - Support PVR live/recordings
 - (Remove music support)
@@ -7,7 +12,7 @@ v2.0.0 Re-write!
 - Better notifications
 - Filter watched items from list (configurable)
 
-v1.0.0
+v1.0.0 (2024-11-02)
 - Initial Release
 - Supports Episodes, Movies, Songs, PVR channels, Non-library files
 - Does not (yet?) support: addons/PVR recordings
