@@ -58,7 +58,7 @@ class PlaybackList:
                     self.init()
                     return
                 for playback in switchback_list_json:
-                    self.list.append(Playback(**playback))
+                    self.list.append(Playback.from_dict(playback))
 
         except FileNotFoundError:
             Logger.warning(f"Could not find: [{self.file}] - creating empty PlaybackList & file")
