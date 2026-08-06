@@ -7,13 +7,19 @@ import xbmcplugin
 import xbmcgui
 
 from resources.lib.store import Store
-from bossanova808.constants import TRANSLATE
+from bossanova808.constants import TRANSLATE, KODI_MAJOR_VERSION
 from bossanova808.logger import Logger
 from bossanova808.notify import Notify
 
+# The PVR hack below was needed on Omega-era Kodi to get proper PVR live TV controls when
+# starting playback from a plugin (see https://forum.kodi.tv/showthread.php?tid=381623).
+# Kodi 22 no longer needs it - the normal resolved-item path works correctly there (tested with
+# both the quick switchback and the full list). Gated by version so Kodi < 22 keeps the hack it needs.
+USE_PVR_HACK = KODI_MAJOR_VERSION < 22
+
 
 # PVR HACK!
-# Needed to trigger live PVR playback with proper PVR controls.
+# Needed to trigger live PVR playback with proper PVR controls, on Kodi < 22 (see USE_PVR_HACK above).
 # See https://forum.kodi.tv/showthread.php?tid=381623
 def pvr_hack(path):
     xbmc.PlayList(xbmc.PLAYLIST_VIDEO).clear()
@@ -69,12 +75,12 @@ def run():
         image = switchback_to_play.poster or switchback_to_play.icon
         Notify.kodi_notification(f"{switchback_to_play.pluginlabel_short}", 3000, image)
 
-        # Short circuit here if PVR, see pvr_hack above.
-        if 'pvr://channels' in switchback_to_play.path:
+        # Short circuit here if PVR, see pvr_hack above (Kodi < 22 only, see USE_PVR_HACK).
+        if USE_PVR_HACK and 'pvr://channels' in switchback_to_play.path:
             pvr_hack(switchback_to_play.path)
             return
 
-        # Normal path for everything else
+        # Normal path for everything else (including PVR live on Kodi 22+, see USE_PVR_HACK)
         list_item = switchback_to_play.create_list_item_from_playback()
         list_item.setProperty('Switchback', switchback_to_play.path)
         # Store.update_home_window_switchback_property(switchback_to_play.path)
@@ -128,7 +134,7 @@ def run():
             # For detecting Switchback playbacks (in player.py)
             list_item.setProperty('Switchback', playback.path)
             # Use the 'proxy' URL if we're dealing with pvr_live and need to trigger the PVR playback hack
-            if playback.source == "pvr_live":
+            if USE_PVR_HACK and playback.source == "pvr_live":
                 proxy_url = f"plugin://plugin.switchback?mode=pvr_hack&path={playback.path}"
                 Logger.debug(f"Creating directory item with pvr_hack proxy url: {proxy_url}")
                 xbmcplugin.addDirectoryItem(plugin_instance, proxy_url, list_item)

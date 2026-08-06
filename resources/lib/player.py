@@ -2,7 +2,7 @@ import xbmc
 
 from bossanova808.constants import HOME_WINDOW
 from bossanova808.logger import Logger
-from resources.lib.playback import Playback
+from resources.lib.playback import SwitchbackPlayback
 
 from resources.lib.store import Store
 
@@ -47,7 +47,7 @@ class KodiPlayer(xbmc.Player):
             # If we got to here, this was not a Switchback-triggered playback, or for some reason we've been unable to find the Playback.
             # Create a new Playback object and record the details.
             Logger.info("Not a Switchback playback, or error retrieving previous Playback, so creating a new Playback object to record details")
-            Store.current_playback = Playback()
+            Store.current_playback = SwitchbackPlayback()
             Store.current_playback.update_playback_details(file, item)
 
     # Playback finished 'naturally'
