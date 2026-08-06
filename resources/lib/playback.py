@@ -3,7 +3,6 @@ import json
 from dataclasses import dataclass
 from typing import List, Optional
 
-import xbmcgui
 import xbmcvfs
 
 # noinspection PyPackages
@@ -12,110 +11,6 @@ from bossanova808.playback import Playback
 from bossanova808.utilities import get_resume_point, get_playcount, get_advancedsetting
 # noinspection PyPackages
 from bossanova808.logger import Logger
-# noinspection PyUnresolvedReferences
-from infotagger.listitem import ListItemInfoTag
-
-
-@dataclass
-class SwitchbackPlayback(Playback):
-    """
-    A Playback, plus the Switchback-specific display/ListItem concerns (not needed by other
-    consumers of the shared Playback class, and create_list_item_from_playback() needs
-    script.module.infotagger, which is a Switchback-only dependency).
-    """
-
-    @property
-    def pluginlabel(self) -> str:
-        """
-        Create a more full label, e.g. Showname (2x03) - Episode title
-
-        :return: The Switchback label for display in the plugin list
-        """
-        label = self.title or self.label or self.channelname or (os.path.basename(self.path) if self.path else None) or "Unknown"
-        if self.showtitle:
-            if (self.season is not None and self.season >= 0) and (self.episode is not None and self.episode >= 0):
-                label = f"{self.showtitle} ({self.season}x{self.episode:02d}) - {self.title or label}"
-            elif self.season is not None and self.season >= 0:
-                label = f"{self.showtitle} ({self.season}x?) - {self.title or label}"
-            else:
-                label = f"{self.showtitle} - {self.title or label}"
-        elif self.channelname:
-            if self.source == "pvr_live":
-                label = f"{self.channelname} (PVR Live)"
-            else:
-                label = f"{label} (PVR Recording {self.channelname})"
-
-        if self.source == "addon":
-            label = f"{label} (* Add-on)"
-        return label
-
-    @property
-    def pluginlabel_short(self) -> str:
-        """
-        Create a shorter label, e.g. Showname (2x03)
-        """
-        label = self.title or self.label or self.channelname or (os.path.basename(self.path) if self.path else None) or "Unknown"
-        if self.showtitle:
-            if (self.season is not None and self.season >= 0) and (self.episode is not None and self.episode >= 0):
-                label = f"{self.showtitle} ({self.season}x{self.episode:02d})"
-            elif self.season is not None and self.season >= 0:
-                label = f"{self.showtitle} ({self.season}x?)"
-            else:
-                label = f"{self.showtitle}"
-
-        return label
-
-    # noinspection PyMethodMayBeStatic
-    def create_list_item_from_playback(self) -> xbmcgui.ListItem:
-        """
-        Create a Kodi ListItem object from a Playback object
-
-        :return: ListItem: a Kodi ListItem object constructed from the Playback object
-        """
-
-        Logger.debug("Creating list item from playback:", self)
-
-        list_item = xbmcgui.ListItem(label=self.pluginlabel, path=self.file if self.source not in ["addon", "pvr_live"] else self.path)
-        art = {key:value for key, value in {"thumb":self.thumbnail, "poster":self.poster, "fanart":self.fanart, "icon":self.icon}.items() if value}
-        if art:
-            list_item.setArt(art)
-        list_item.setProperty('IsPlayable', 'true')
-
-        # PVR channels are not really videos! See: https://forum.kodi.tv/showthread.php?tid=381623&pid=3232826#pid3232826
-        # So that's all we need to do for PVR playbacks
-        if self.source == "pvr_live":
-            return list_item
-
-        # Otherwise, it's an episode/movie/file etc...set the InfoVideoTag stuff
-        tag = ListItemInfoTag(list_item, "video")
-        duration_seconds = None
-        if self.duration is not None:
-            duration_seconds = self.duration
-        elif self.totaltime is not None:
-            duration_seconds = self.totaltime
-
-        # Infotagger seems the best way to do this currently as is well tested
-        # I found directly setting things on InfoVideoTag to be buggy/inconsistent
-        infolabels = {
-                'mediatype':self.type,
-                'dbid':self.dbid,
-                'title':self.title,
-                'path':self.path,
-                'year':self.year,
-                'tvshowtitle':self.showtitle,
-                'episode':self.episode,
-                'season':self.season,
-                'duration':duration_seconds,
-        }
-        tag.set_info(infolabels)
-
-        # Required, otherwise immediate Switchback mode won't resume properly
-        # These keys are correct, even if CodeRabbit says they are not - see https://github.com/jurialmunkey/script.module.infotagger/blob/f138c1dd7201a8aff7541292fbfc61ed7b3a9aa1/resources/modules/infotagger/listitem.py#L204
-        tag.set_resume_point({'ResumeTime':float(self.resumetime or 0.0), 'TotalTime':float(self.totaltime or 0.0)})
-        if self.tvshowdbid:
-            list_item.setProperty('tvshowdbid', str(self.tvshowdbid))
-
-        return list_item
 
 
 @dataclass
@@ -127,7 +22,7 @@ class PlaybackList:
     To create a PlaybackList::
         switchback = PlaybackList([], xbmcvfs.translatePath(os.path.join(PROFILE, "switchback_list.json")))
     """
-    list: List[SwitchbackPlayback]
+    list: List[Playback]
     file: str
     remove_watched_playbacks: bool = False
 
@@ -163,7 +58,7 @@ class PlaybackList:
                     self.init()
                     return
                 for playback in switchback_list_json:
-                    self.list.append(SwitchbackPlayback(**playback))
+                    self.list.append(Playback(**playback))
 
         except FileNotFoundError:
             Logger.warning(f"Could not find: [{self.file}] - creating empty PlaybackList & file")
@@ -266,7 +161,7 @@ class PlaybackList:
         """
         self.list = [x for x in self.list if x.path != path]
 
-    def find_playback_by_path(self, path: str) -> Optional[SwitchbackPlayback]:
+    def find_playback_by_path(self, path: str) -> Optional[Playback]:
         """
         Return a playback with the matching path if found, otherwise None
 

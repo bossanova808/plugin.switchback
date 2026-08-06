@@ -57,8 +57,9 @@ Tänk dig följande scenario:
         <email>bossanova808@gmail.com</email>
         <news>v2.0.1
 - Playback tracking now uses a shared class from script.module.bossanova808, common with other addons
-- Skip the old PVR playback workaround on Kodi 22+, using the normal playback path instead
+- Quick Switchback now resumes PVR live TV and recordings correctly, with proper channel controls
 - Fix a rare crash when saving the Switchback list on Windows
+- Resume notifications now show a timestamp, and distinguish live TV/recordings from other video
         </news>
         <assets>
             <icon>resources/icon.png</icon>
