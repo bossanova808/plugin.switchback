@@ -2,7 +2,7 @@
 <addon id="plugin.switchback" name="Switchback" version="2.0.1" provider-name="bossanova808">
     <requires>
         <import addon="xbmc.python" version="3.0.1" />
-        <import addon="script.module.bossanova808" version="1.0.3" />
+        <import addon="script.module.bossanova808" version="1.0.4" />
     </requires>
     <!-- The main service entry point, to keep track of playbacks -->
     <extension point="xbmc.service" library="service.py" />
@@ -59,6 +59,8 @@ Tänk dig följande scenario:
 - Quick Switchback now resumes PVR live TV and recordings correctly, with proper channel controls
 - Fix a rare crash when saving the Switchback list on Windows
 - Resume notifications now show a timestamp, and distinguish live TV/recordings from other video
+- Fix duplicate list entries appearing for the same movie/episode/etc across repeated plays (could happen for addon-backed library items, e.g. Jellyfin, where the reported path can differ between plays)
+- Faster list loading: halved the JSON-RPC calls needed to refresh a list of library items, and removed an unnecessary call on every list view
         </news>
         <assets>
             <icon>resources/icon.png</icon>
