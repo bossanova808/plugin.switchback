@@ -1,7 +1,10 @@
-v2.0.1 (2026-08-06)
+v2.0.1 (2026-08-08)
 - Playback tracking now uses a shared class from script.module.bossanova808, common with other addons
-- Skip the old PVR playback workaround on Kodi 22+, using the normal playback path instead
+- Quick Switchback now resumes PVR live TV and recordings correctly, with proper channel controls
 - Fix a rare crash when saving the Switchback list on Windows
+- Resume notifications now show a timestamp, and distinguish live TV/recordings from other video
+- Fix duplicate list entries appearing for the same movie/episode/etc across repeated plays (could happen for addon-backed library items, e.g. Jellyfin, where the reported path can differ between plays)
+- Faster list loading: halved the JSON-RPC calls needed to refresh a list of library items, and removed an unnecessary call on every list view
 
 v2.0.0 Re-write! (2025-10-07)
 - Support addons
