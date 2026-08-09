@@ -7,7 +7,7 @@ import xbmcplugin
 import xbmcgui
 
 from resources.lib.store import Store
-from bossanova808.constants import TRANSLATE
+from bossanova808.constants import TRANSLATE, KODI_MAJOR_VERSION
 from bossanova808.logger import Logger
 from bossanova808.notify import Notify
 
@@ -18,12 +18,14 @@ from bossanova808.notify import Notify
 # item with no user click for Kodi to hook into. A directly resolved-item ListItem/setResolvedUrl()
 # gives you basic playback, but never routes through Kodi's PVR-aware
 # CPVRGUIActionsPlayback::SwitchToChannel() path, so Kodi never activates the actual live-TV
-# session - confirmed still required on current Kodi (not an Omega-era-only workaround, contrary to
-# what an earlier pass at this assumed). See: https://forum.kodi.tv/showthread.php?tid=381623
-# (Kodi core dev discussion, see posts #17-18).
-# NOT needed for the default list mode further below - an on-screen click on a pvr:// item there
-# already routes through Kodi's native handling correctly on its own (and, per testing, using this
-# hack there instead causes a hard crash - so don't).
+# session. This was a genuine Kodi core bug (not addon-side, and not just an Omega-era thing, as an
+# earlier pass at this assumed) - see https://github.com/xbmc/xbmc/issues/28877, fixed by
+# https://github.com/xbmc/xbmc/pull/28893, landing in Kodi 22 (Piers). So this hack is only used
+# below on Kodi < 22, where the underlying bug is still present.
+# NOT needed for the default list mode further below on any Kodi version - an on-screen click on a
+# pvr:// item there already routes through Kodi's native handling correctly on its own (and, per
+# testing, using this hack there instead causes a hard crash - so don't. See the same issue link
+# above for the crash report/discussion).
 def pvr_hack(path, resume=False):
     """
     :param path: the pvr:// channel or recording path to play
@@ -85,23 +87,30 @@ def run():
         image = switchback_to_play.poster or switchback_to_play.icon
         at_timestamp = f" at {switchback_to_play.resume_timestamp}" if switchback_to_play.resume_timestamp else ""
         if switchback_to_play.source == "pvr_live":
-            notification_text = f"Resuming live TV: {switchback_to_play.pluginlabel_short}"
+            # Retuning live TV involves Kodi spinning up a full PVR session (buffering etc), which
+            # can take several seconds - call this out so it doesn't read as broken/unresponsive
+            notification_text = f"Re-tuning live TV: {switchback_to_play.pluginlabel_short} (this may take a moment)"
         elif switchback_to_play.source == "pvr_recording":
-            notification_text = f"Resuming recording: {switchback_to_play.pluginlabel_short}{at_timestamp}"
+            notification_text = f"Resuming PVR Recording: {switchback_to_play.pluginlabel_short}{at_timestamp}"
         elif at_timestamp:
             notification_text = f"Resuming: {switchback_to_play.pluginlabel_short}{at_timestamp}"
         else:
             notification_text = switchback_to_play.pluginlabel_short
         Notify.kodi_notification(notification_text, 3000, image)
 
-        # Short circuit here if PVR, see pvr_hack above. Recordings need the same treatment as
-        # live channels here (but with resume=True) - a directly resolved item doesn't reliably
-        # apply the resume position for a recording off-screen, same issue as live TV's controls.
-        if switchback_to_play.source in ("pvr_live", "pvr_recording"):
+        # Short circuit here if PVR and we're on a Kodi still needing the PVR hack (see pvr_hack
+        # above). Kodi core PR https://github.com/xbmc/xbmc/pull/28893 (fixing
+        # https://github.com/xbmc/xbmc/issues/28877) resolves this properly from Piers (22) onwards
+        # (confirmed via testing against a pre-release Kodi build with the fix, all 4 PVR
+        # onscreen/offscreen x live/recording combinations working correctly, hack-free), so the
+        # hack is no longer used there, for either live or recordings. Recordings still need the
+        # hack pre-fix (with resume=True) - a directly resolved item doesn't reliably apply the
+        # resume position for a recording off-screen, same issue as live TV's controls.
+        if switchback_to_play.source in ("pvr_live", "pvr_recording") and KODI_MAJOR_VERSION < 22:
             pvr_hack(switchback_to_play.path, resume=(switchback_to_play.source == "pvr_recording"))
             return
 
-        # Normal path for everything else
+        # Normal path for everything else (and for PVR on Kodi 22+)
         list_item = switchback_to_play.create_list_item_from_playback()
         list_item.setProperty('Switchback', switchback_to_play.path)
         # Store.update_home_window_switchback_property(switchback_to_play.path)
